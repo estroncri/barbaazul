@@ -252,11 +252,19 @@ img { max-width: 100%; height: auto; display: block; }
 
 /* Hamburger */
 .hamburger {
-    display: none; flex-direction: column; gap: 6px;
-    cursor: pointer; z-index: 10001;
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+    z-index: 10001;
     padding: 8px;
-    background: none;
-    border: none;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
     -webkit-tap-highlight-color: transparent;
 }
 .hamburger span {
@@ -270,6 +278,55 @@ img { max-width: 100%; height: auto; display: block; }
 .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 6px); }
 .hamburger.active span:nth-child(2) { opacity: 0; }
 .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -6px); }
+
+/* ========== MOBILE MENU OVERLAY (base: siempre oculto) ========== */
+.mobile-menu-overlay {
+    display: none !important;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: var(--dark);
+    z-index: 10000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 25px;
+    padding: 20px;
+    overflow: hidden;
+}
+.mobile-menu-overlay.open {
+    display: flex !important;
+}
+.mobile-menu-overlay a {
+    font-size: 1.4rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    color: var(--white);
+    padding: 12px 20px;
+    transition: color 0.3s;
+    text-align: center;
+    text-decoration: none;
+}
+.mobile-menu-overlay a:active {
+    color: var(--gold);
+}
+.mobile-menu-overlay .nav-cta-mobile {
+    margin-top: 20px;
+    padding: 14px 35px;
+    border: 1.5px solid var(--yellow);
+    color: var(--yellow) !important;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    font-family: 'Montserrat', sans-serif;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 10px;
+}
 
 /* ========== HERO ========== */
 .hero {
@@ -1146,53 +1203,7 @@ footer {
     }
     .nav-logo { font-size: 1.5rem; letter-spacing: 3px; }
 
-    /* Mobile Menu Overlay — positioned on body, NOT inside navbar */
-    .mobile-menu-overlay {
-        display: none;
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        width: 100vw;
-        height: 100vh;
-        height: 100dvh;
-        background: rgba(6,10,20,0.98);
-        z-index: 10000;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 25px;
-        padding: 20px;
-    }
-    .mobile-menu-overlay.open {
-        display: flex;
-    }
-    .mobile-menu-overlay a {
-        font-size: 1.4rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 4px;
-        color: var(--white);
-        padding: 12px 20px;
-        transition: color 0.3s;
-        text-align: center;
-    }
-    .mobile-menu-overlay a:active {
-        color: var(--gold);
-    }
-    .mobile-menu-overlay .nav-cta-mobile {
-        margin-top: 20px;
-        padding: 14px 35px;
-        border: 1.5px solid var(--yellow);
-        color: var(--yellow) !important;
-        border-radius: 50px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        letter-spacing: 2px;
-        font-family: 'Montserrat', sans-serif;
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .nav-cta-mobile { display: none; }
+    /* Mobile menu overlay ya definido en base CSS */
 
     /* HERO MOBILE */
     .hero { min-height: 100svh; }
