@@ -69,10 +69,6 @@
             <a href="#equipo">Equipo</a>
             <a href="#zona-gamer">Gamer</a>
             <a href="#contacto">Contacto</a>
-            <!-- CTA visible solo en menú móvil -->
-            <a href="https://wa.me/573007002929?text=Hola%2C%20quiero%20agendar%20una%20cita" class="nav-cta-mobile" target="_blank" rel="noopener">
-                <i class="bi bi-whatsapp"></i> Reservar Cita
-            </a>
         </div>
         <a href="https://wa.me/573007002929?text=Hola%2C%20quiero%20agendar%20una%20cita" class="nav-cta nav-cta-desktop" target="_blank" rel="noopener">
             <i class="bi bi-whatsapp"></i> Reservar Cita
@@ -81,6 +77,19 @@
             <span></span><span></span><span></span>
         </button>
     </nav>
+
+    <!-- MOBILE MENU OVERLAY (fuera del navbar para evitar bug de backdrop-filter) -->
+    <div class="mobile-menu-overlay" id="mobileMenu">
+        <a href="#inicio">Inicio</a>
+        <a href="#servicios">Servicios</a>
+        <a href="#nosotros">Nosotros</a>
+        <a href="#equipo">Equipo</a>
+        <a href="#zona-gamer">Gamer</a>
+        <a href="#contacto">Contacto</a>
+        <a href="https://wa.me/573007002929?text=Hola%2C%20quiero%20agendar%20una%20cita" class="nav-cta-mobile" target="_blank" rel="noopener">
+            <i class="bi bi-whatsapp"></i> Reservar Cita
+        </a>
+    </div>
 
     <!-- HERO -->
     <section class="hero" id="inicio">

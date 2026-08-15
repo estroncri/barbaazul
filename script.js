@@ -95,30 +95,39 @@
 
     // ===== HAMBURGER MENU =====
     const hamburger = $('#hamburger');
-    const navLinks = $('#navLinks');
-    if (hamburger && navLinks) {
+    const mobileMenu = $('#mobileMenu');
+    if (hamburger && mobileMenu) {
+        function closeMenu() {
+            hamburger.classList.remove('active');
+            mobileMenu.classList.remove('open');
+            document.body.style.overflow = '';
+            hamburger.setAttribute('aria-expanded', 'false');
+        }
+
+        function openMenu() {
+            hamburger.classList.add('active');
+            mobileMenu.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            hamburger.setAttribute('aria-expanded', 'true');
+        }
+
         hamburger.addEventListener('click', () => {
-            const isOpen = hamburger.classList.toggle('active');
-            navLinks.classList.toggle('open');
-            // Bloquear scroll del body cuando el menú está abierto
-            document.body.style.overflow = isOpen ? 'hidden' : '';
+            if (mobileMenu.classList.contains('open')) {
+                closeMenu();
+            } else {
+                openMenu();
+            }
         });
 
         // Cerrar menú al hacer clic en un enlace
-        $$('a', navLinks).forEach(link => {
-            link.addEventListener('click', () => {
-                hamburger.classList.remove('active');
-                navLinks.classList.remove('open');
-                document.body.style.overflow = '';
-            });
+        $$('a', mobileMenu).forEach(link => {
+            link.addEventListener('click', closeMenu);
         });
 
         // Cerrar menú con tecla Escape
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && navLinks.classList.contains('open')) {
-                hamburger.classList.remove('active');
-                navLinks.classList.remove('open');
-                document.body.style.overflow = '';
+            if (e.key === 'Escape' && mobileMenu.classList.contains('open')) {
+                closeMenu();
             }
         });
     }
