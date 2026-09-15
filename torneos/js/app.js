@@ -2239,6 +2239,22 @@
 
     window.addEventListener('hashchange', render);
 
+    /* La franja del pie decía "versión demo" pase lo que pase. Ahora dice lo
+       que hay, y cuando los pagos son reales desaparece: una franja que
+       avisa de algo que ya no es cierto enseña a no leerla. */
+    async function pintarFranja() {
+        const franja = document.querySelector('.demo-strip');
+        if (!franja) return;
+        const p = await pasarela();
+        if (p.wompi && !enPruebas(p)) { franja.remove(); return; }
+        franja.innerHTML = p.wompi
+            ? '<b>Modo de pruebas:</b> los pagos van a Wompi pero no mueven dinero real.'
+            : S.modo === 'api'
+                ? '<b>Sin pasarela:</b> las recargas quedan en revisión hasta que el organizador confirme el pago.'
+                : '<b>Versión demo:</b> los pagos y la verificación de cuenta están simulados en el navegador (nada de dinero real todavía).';
+    }
+    pintarFranja();
+
     /* En modo servidor la sesión vive en un token: hay que preguntarle al
        servidor quién es antes de pintar, o el primer render saldría como
        si nadie hubiera iniciado sesión. */

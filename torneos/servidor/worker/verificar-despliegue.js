@@ -98,7 +98,21 @@ async function pedir(ruta, op = {}) {
     marca(permitido === origenEsperado, `Tu página está autorizada (${origenEsperado})`,
         permitido || 'sin cabecera CORS');
 
-    /* 7. Los torneos se leen sin necesidad de entrar */
+    /* 7. Entrar con una cuenta que no existe tiene que dar un "no", no un
+       error del servidor. Si aquí sale 500, lo que está roto es la base o el
+       servidor, no la contraseña de nadie. (429 también vale: significa que
+       el freno a los intentos está funcionando.) */
+    const nadie = await pedir('/auth/login', {
+        metodo: 'POST',
+        cuerpo: { usuario: '999999999999', pass: 'contraseña-que-no-es' }
+    });
+    marca(nadie.estado === 401 || nadie.estado === 429,
+        'Entrar con una cuenta inexistente se rechaza limpio',
+        nadie.estado === 401 ? 'devuelve 401'
+            : nadie.estado === 429 ? 'devuelve 429 (freno de intentos)'
+            : `devolvió ${nadie.estado}: EL SERVIDOR ESTÁ FALLANDO`);
+
+    /* 8. Los torneos se leen sin necesidad de entrar */
     const lista = await pedir('/torneos');
     marca(lista.estado === 200 && Array.isArray(lista.datos),
         'La lista de torneos es pública', `${(lista.datos || []).length} torneo(s)`);

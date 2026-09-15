@@ -118,7 +118,38 @@ if (!mig.ok && !/no migrations to apply/i.test(mig.salida)) {
     console.error(mig.salida);
     throw new Error('Fallaron las migraciones.');
 }
-ok('Tablas al día');
+
+/* "Aplicadas" no siempre significa "están": una migración a medias deja la
+   base sin una tabla y eso no se nota hasta que alguien intenta entrar y le
+   sale un error del servidor. Se comprueba aquí, que es barato, en vez de
+   que lo descubra un jugador. */
+const NECESARIAS = ['usuarios', 'sesiones', 'torneos', 'inscripciones',
+                    'resultados', 'movimientos', 'recuperaciones',
+                    'verificaciones', 'intentos'];
+const tablas = wrangler(['d1', 'execute', NOMBRE_BASE, '--remote', '--json', '--command',
+    "SELECT name FROM sqlite_master WHERE type = 'table'"]);
+let hay = [];
+try {
+    const json = JSON.parse(tablas.salida.slice(tablas.salida.indexOf('[')));
+    hay = (json[0]?.results || []).map((f) => f.name);
+} catch (e) { /* si no se pudo leer, no se inventa nada */ }
+
+if (hay.length) {
+    const faltan = NECESARIAS.filter((t) => !hay.includes(t));
+    if (faltan.length) {
+        console.error(`
+  A la base le faltan tablas: ${faltan.join(', ')}
+
+  Las migraciones dijeron que estaban al día, así que alguna quedó a
+  medias. Aplícalas de nuevo con:
+
+    npx wrangler d1 migrations apply ${NOMBRE_BASE} --remote`);
+        throw new Error('Faltan tablas en la base.');
+    }
+    ok(`Tablas al día (${hay.length})`);
+} else {
+    aviso('No se pudo leer la lista de tablas; se sigue igual.');
+}
 
 /* ---- 3. Secretos ---- */
 paso('Secretos');
