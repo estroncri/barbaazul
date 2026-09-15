@@ -16,9 +16,9 @@
 <meta property="og:description" content="Compra tu cupo, compite y retira tus premios. Participantes, sala y resultados públicos.">
 <meta property="og:locale" content="es_CO">
 
-<meta name="theme-color" content="#05070f">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="icon" href="../logo-barbaazul.png">
+<link rel="icon" href="img/logo.svg">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,15 +28,24 @@
 </head>
 <body>
 
+<!-- PANTALLA DE CARGA -->
+<div id="carga" aria-hidden="true">
+    <div style="text-align:center">
+        <img src="img/logo.svg" alt="" class="logo-img">
+        <div class="barra"><i></i></div>
+    </div>
+</div>
+
 <div class="bg-fx" aria-hidden="true"></div>
+<canvas id="brasas" aria-hidden="true"></canvas>
 <div class="bg-grid" aria-hidden="true"></div>
 
 <!-- NAV -->
 <header class="nav">
     <div class="nav-inner">
         <a href="#/" class="brand">
-            <span class="brand-mark"><i class="bi bi-fire"></i></span>
-            ARENA <span class="grad-azul">AZUL</span>
+            <img src="img/logo.svg" alt="" class="logo-img">
+            ARENA <span class="grad-oro">AZUL</span>
         </a>
         <nav class="nav-links" id="navLinks"></nav>
         <div class="nav-right" id="navRight"></div>
@@ -65,6 +74,7 @@
 
 <div class="toast-zone" id="toasts" aria-live="polite"></div>
 
+<script src="js/efectos.js"></script>
 <script src="js/perfil-ff.js"></script>
 <script src="js/store.js"></script>
 <script src="js/app.js"></script>

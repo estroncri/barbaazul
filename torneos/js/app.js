@@ -94,8 +94,8 @@
                     h = Math.floor(ms / 36e5) % 24,
                     m = Math.floor(ms / 6e4) % 60,
                     s = Math.floor(ms / 1e3) % 60;
-                const box = (v, l) => `<div class="cd-box"><div class="cd-num">${String(v).padStart(2, '0')}</div><div class="cd-lbl">${l}</div></div>`;
-                n.innerHTML = box(d, 'días') + box(h, 'horas') + box(m, 'min') + box(s, 'seg');
+                const box = (v, l, tic) => `<div class="cd-box"><div class="cd-num${tic ? ' tic' : ''}">${String(v).padStart(2, '0')}</div><div class="cd-lbl">${l}</div></div>`;
+                n.innerHTML = box(d, 'días') + box(h, 'horas') + box(m, 'min') + box(s, 'seg', true);
             });
         };
         pintar();
@@ -161,12 +161,13 @@
 
         return `
         <section class="hero wrap">
-            <div class="hero-badge"><span class="dot-live"></span>Inscripciones abiertas</div>
-            <h1>Torneos de <span class="grad-fire">Free Fire</span><br>con premios <span class="grad-azul">reales</span></h1>
-            <p class="lead">Conecta tu cuenta de Free Fire, paga tu cupo desde la plataforma y compite.
+            <img src="img/logo.svg" alt="" class="hero-logo reveal">
+            <div class="hero-badge reveal"><span class="dot-live"></span>Inscripciones abiertas</div>
+            <h1 class="reveal">Torneos de <span class="grad-fire">Free Fire</span><br>con premios <span class="grad-oro">reales</span></h1>
+            <p class="lead reveal">Conecta tu cuenta de Free Fire, paga tu cupo desde la plataforma y compite.
             Los participantes, la sala y los resultados se publican aquí para que todo quede claro.
             El aviso de cada torneo y la encuesta del modo salen en el grupo de WhatsApp.</p>
-            <div class="hero-cta">
+            <div class="hero-cta reveal">
                 <a href="#/torneos" class="btn btn-fire"><i class="bi bi-trophy-fill"></i> Ver torneos</a>
                 <a href="${esc(cfg.whatsappGrupo)}" target="_blank" rel="noopener" class="btn btn-wa"><i class="bi bi-whatsapp"></i> Entrar al grupo</a>
             </div>
@@ -174,7 +175,7 @@
 
         ${destacado ? `
         <section class="section wrap">
-            <div class="card" style="padding:20px">
+            <div class="card card-ardiendo" style="padding:20px">
                 <div class="t-meta">
                     <span class="pill pill-${destacado.modo}">${S.nombreModo[destacado.modo]}</span>
                     <span class="pill pill-${destacado.estado}">${etiquetaEstado(destacado.estado)}</span>
@@ -185,7 +186,7 @@
                 <div class="countdown" data-cd="${destacado.fecha}"></div>
                 <div class="grid g3" style="gap:10px">
                     <div class="stat card" style="padding:12px 8px">
-                        <div class="stat-num grad-fire">${money(destacado.premioTotal)}</div>
+                        <div class="stat-num grad-fire" data-valor="${destacado.premioTotal}" data-formato="cop">${money(destacado.premioTotal)}</div>
                         <div class="stat-lbl">Premio total</div>
                     </div>
                     <div class="stat card" style="padding:12px 8px">
@@ -218,10 +219,10 @@
 
         <section class="section wrap">
             <div class="grid g4">
-                <div class="card stat"><div class="stat-num grad-fire">${stats.torneos}</div><div class="stat-lbl">Torneos</div></div>
-                <div class="card stat"><div class="stat-num grad-azul">${stats.jugadores}</div><div class="stat-lbl">Inscripciones</div></div>
-                <div class="card stat"><div class="stat-num" style="color:var(--verde)">${money(stats.repartido)}</div><div class="stat-lbl">Repartido</div></div>
-                <div class="card stat"><div class="stat-num">${stats.finalizados}</div><div class="stat-lbl">Finalizados</div></div>
+                <div class="card stat reveal"><div class="stat-num grad-fire" data-valor="${stats.torneos}">${stats.torneos}</div><div class="stat-lbl">Torneos</div></div>
+                <div class="card stat reveal"><div class="stat-num grad-oro" data-valor="${stats.jugadores}">${stats.jugadores}</div><div class="stat-lbl">Inscripciones</div></div>
+                <div class="card stat reveal"><div class="stat-num" style="color:var(--verde)" data-valor="${stats.repartido}" data-formato="cop">${money(stats.repartido)}</div><div class="stat-lbl">Repartido</div></div>
+                <div class="card stat reveal"><div class="stat-num" data-valor="${stats.finalizados}">${stats.finalizados}</div><div class="stat-lbl">Finalizados</div></div>
             </div>
         </section>
 
@@ -238,7 +239,7 @@
                     ['Resultados públicos', 'Kills, puestos y puntos quedan en la tabla del torneo. Nada de capturas por privado.'],
                     ['Retira tu plata', 'Los premios caen a tu saldo y pides el retiro a tu Nequi o cuenta bancaria.']
                 ].map(([t, d], i) => `
-                    <div class="card paso">
+                    <div class="card paso reveal">
                         <div class="paso-n">${i + 1}</div>
                         <h4>${t}</h4>
                         <p>${d}</p>
@@ -254,7 +255,7 @@
     function cardTorneo(t) {
         const pct = Math.min(100, Math.round((t.inscritos / t.cupoMax) * 100));
         return `
-        <a href="#/torneo/${t.id}" class="card card-hover t-card" data-tema="${esc(t.tema || 'fuego')}">
+        <a href="#/torneo/${t.id}" class="card card-hover t-card reveal" data-tema="${esc(t.tema || 'fuego')}">
             <div class="t-top">
                 <div class="t-meta">
                     <span class="pill pill-${t.modo}">${S.nombreModo[t.modo]}</span>
@@ -351,7 +352,7 @@
                             ${!finalizado ? `<div class="countdown" data-cd="${t.fecha}"></div>` : ''}
                             <div class="grid g3" style="gap:10px">
                                 <div class="stat" style="padding:10px 6px">
-                                    <div class="stat-num grad-fire">${money(t.premioTotal)}</div>
+                                    <div class="stat-num grad-fire" data-valor="${t.premioTotal}" data-formato="cop">${money(t.premioTotal)}</div>
                                     <div class="stat-lbl">Premio total</div>
                                 </div>
                                 <div class="stat" style="padding:10px 6px">
@@ -475,7 +476,7 @@
         const esMio = yo && p.userId === yo.id;
         const num = r && r.puesto ? r.puesto : i + 1;
         const clase = r && r.puesto && r.puesto <= 3 ? 'top' + r.puesto : '';
-        return `<div class="p-item ${esMio ? 'yo' : ''}">
+        return `<div class="p-item ${esMio ? 'yo' : ''}" style="animation: subir .5s ${Math.min(i * 0.05, 0.6)}s both">
             <div class="p-num ${clase}">${num}</div>
             <div class="p-info">
                 <div class="p-nick">${esc(p.equipo.nombre)} ${esMio ? '<span class="pill pill-abierto" style="font-size:.6rem">TÚ</span>' : ''}</div>
@@ -672,7 +673,7 @@
                             `<option value="${k}" ${k === cfg.regionPorDefecto ? 'selected' : ''}>${esc(v)}</option>`).join('')}
                     </select>
                 </div>
-                <button class="btn btn-azul btn-block" id="btnBuscar">
+                <button class="btn btn-oro btn-block" id="btnBuscar">
                     <i class="bi bi-search"></i> Buscar mi cuenta
                 </button>
                 <div class="msg msg-warn mt" style="font-size:.78rem">
@@ -805,7 +806,7 @@
                 </div>
             </div>
             <button class="btn btn-fire btn-block" id="btnCrear">Crear mi cuenta</button>
-            <div class="hint mt">Al crear la cuenta aceptas las <a href="#/reglas" style="color:var(--azul-2)">reglas de la plataforma</a>.</div>
+            <div class="hint mt">Al crear la cuenta aceptas las <a href="#/reglas" style="color:var(--oro)">reglas de la plataforma</a>.</div>
         `;
         $('#btnCrear').onclick = async function () {
             const pass = $('#regPass').value, pass2 = $('#regPass2').value;
@@ -847,7 +848,7 @@
         const icoTipo = {
             recarga: ['bi-arrow-down-circle-fill', 'var(--verde)', 'rgba(46,230,168,.14)'],
             premio: ['bi-trophy-fill', 'var(--fire-2)', 'rgba(255,209,102,.14)'],
-            inscripcion: ['bi-controller', 'var(--azul-2)', 'rgba(0,168,232,.14)'],
+            inscripcion: ['bi-controller', 'var(--oro)', 'rgba(255,168,60,.14)'],
             retiro: ['bi-arrow-up-circle-fill', 'var(--rojo)', 'rgba(255,77,94,.14)'],
             reembolso: ['bi-arrow-counterclockwise', 'var(--txt-2)', 'rgba(255,255,255,.08)']
         };
@@ -1018,7 +1019,7 @@
 
             <div class="grid g4 mt">
                 <div class="card stat"><div class="stat-num grad-fire">${mis.length}</div><div class="stat-lbl">Torneos</div></div>
-                <div class="card stat"><div class="stat-num grad-azul">${kills}</div><div class="stat-lbl">Kills</div></div>
+                <div class="card stat"><div class="stat-num grad-oro">${kills}</div><div class="stat-lbl">Kills</div></div>
                 <div class="card stat"><div class="stat-num" style="color:var(--amarillo)">${podios}</div><div class="stat-lbl">Podios</div></div>
                 <div class="card stat"><div class="stat-num" style="color:var(--verde)">${money(ganado)}</div><div class="stat-lbl">Ganado</div></div>
             </div>
@@ -1207,7 +1208,7 @@
                     · Balance con el premio: <b style="color:${t.cupoMax * S.cupoPorModo[t.modo] * t.costo - t.premioTotal >= 0 ? 'var(--verde)' : 'var(--rojo)'}">${money(t.cupoMax * S.cupoPorModo[t.modo] * t.costo - t.premioTotal)}</b></div>
                 <div class="flex">
                     <a href="#/torneo/${t.id}" class="btn btn-ghost btn-sm"><i class="bi bi-eye"></i> Ver</a>
-                    <button class="btn btn-azul btn-sm" data-sala="${t.id}"><i class="bi bi-door-open-fill"></i> ${t.sala.publicada ? 'Editar sala' : 'Publicar sala'}</button>
+                    <button class="btn btn-oro btn-sm" data-sala="${t.id}"><i class="bi bi-door-open-fill"></i> ${t.sala.publicada ? 'Editar sala' : 'Publicar sala'}</button>
                     <button class="btn btn-fire btn-sm" data-result="${t.id}"><i class="bi bi-list-ol"></i> Resultados</button>
                     ${t.estado !== 'finalizado' ? `<button class="btn btn-ghost btn-sm" data-cerrar-insc="${t.id}">${t.estado === 'abierto' ? 'Cerrar inscripciones' : 'Reabrir'}</button>` : ''}
                 </div>
@@ -1259,7 +1260,7 @@
             </div>
             <div class="field">
                 <label>Color de la tarjeta</label>
-                <select id="cTema"><option value="fuego">Fuego (naranja)</option><option value="neon">Neón (morado)</option><option value="hielo">Hielo (azul)</option></select>
+                <select id="cTema"><option value="fuego">Naranja</option><option value="neon">Brasa (rojo)</option><option value="hielo">Oro</option></select>
             </div>
             <div class="field">
                 <label>Reglas (una por línea)</label>
@@ -1587,6 +1588,7 @@
                 iniciarCountdowns();
             }
             pintarNav();
+            if (window.Efectos) window.Efectos.activarContadores(app);
         } catch (e) {
             console.error(e);
             app.innerHTML = `<div class="wrap"><div class="msg msg-err">Ocurrió un error: ${esc(e.message)}</div>
