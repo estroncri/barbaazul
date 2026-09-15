@@ -210,12 +210,12 @@
                 <div class="countdown" data-cd="${destacado.fecha}"></div>
                 <div class="grid g3" style="gap:10px">
                     <div class="stat card" style="padding:12px 8px">
-                        <div class="stat-num grad-fire" data-valor="${destacado.premioTotal}" data-formato="cop">${money(destacado.premioTotal)}</div>
-                        <div class="stat-lbl">Premio total</div>
+                        <div class="stat-num grad-fire" data-valor="${destacado.precioKill || 0}" data-formato="cop">${money(destacado.precioKill || 0)}</div>
+                        <div class="stat-lbl">Por cada kill</div>
                     </div>
                     <div class="stat card" style="padding:12px 8px">
-                        <div class="stat-num">${money(destacado.costo)}</div>
-                        <div class="stat-lbl">Cupo x jugador</div>
+                        <div class="stat-num">${money(destacado.premioGanador || 0)}</div>
+                        <div class="stat-lbl">Al ganador</div>
                     </div>
                     <div class="stat card" style="padding:12px 8px">
                         <div class="stat-num">${destacado.inscritos}/${destacado.cupoMax}</div>
@@ -295,8 +295,26 @@
         }).join(' ');
     }
 
+    /* Lo que se propone al crear cada tipo de torneo. El organizador lo
+       puede cambiar torneo por torneo; esto es solo el punto de partida. */
+    const REGLAS_MODO = {
+        solo:     { costo: 5000, minimo: 20, precioKill: 3000, premioGanador: 10000, unidad: 'jugadores' },
+        duo:      { costo: 5000, minimo: 5,  precioKill: 3000, premioGanador: 15000, unidad: 'dúos' },
+        escuadra: { costo: 5000, minimo: 10, precioKill: 3500, premioGanador: 0,     unidad: 'escuadras' }
+    };
+    const unidadDe = (modo) => (REGLAS_MODO[modo] || REGLAS_MODO.solo).unidad;
+
+    /* Cómo se describe el premio ahora: no hay bolsa fija, sale de las kills. */
+    function textoPremio(t) {
+        const partes = [];
+        if (t.precioKill) partes.push(`${money(t.precioKill)} por kill`);
+        if (t.premioGanador) partes.push(`${money(t.premioGanador)} al ganador`);
+        return partes.length ? partes.join(' + ') : 'Sin premio en dinero';
+    }
+
     function etiquetaEstado(e) {
-        return { abierto: 'Inscripciones abiertas', lleno: 'Cupos llenos', en_curso: 'En curso', finalizado: 'Finalizado', proximo: 'Próximamente' }[e] || e;
+        return { abierto: 'Inscripciones abiertas', lleno: 'Cupos llenos', en_curso: 'En curso',
+                 finalizado: 'Finalizado', proximo: 'Próximamente', cancelado: 'Cancelado' }[e] || e;
     }
 
     function cardTorneo(t) {
@@ -313,14 +331,17 @@
             </div>
             <div class="t-body">
                 <div class="t-rows">
-                    <div class="t-row"><span>Premio</span><b class="premio grad-fire">${money(t.premioTotal)}</b></div>
-                    <div class="t-row"><span>Cupo por jugador</span><b>${money(t.costo)}</b></div>
+                    <div class="t-row"><span>Por kill</span><b class="premio grad-fire">${money(t.precioKill || 0)}</b></div>
+                    ${t.premioGanador ? `<div class="t-row"><span>Al ganador</span><b>${money(t.premioGanador)}</b></div>` : ''}
+                    <div class="t-row"><span>Inscripción</span><b>${money(t.costo)}</b></div>
                     <div class="t-row"><span>Mapa</span><b>${esc(t.mapa)}</b></div>
                 </div>
                 <div class="t-row" style="margin-bottom:6px">
                     <span>${t.modo === 'solo' ? 'Jugadores' : 'Equipos'}</span>
                     <b>${t.inscritos}/${t.cupoMax}</b>
                 </div>
+                ${t.minimo && t.inscritos < t.minimo ? `<div class="muted" style="font-size:.74rem;margin-bottom:6px">
+                    Faltan ${t.minimo - t.inscritos} ${unidadDe(t.modo)} para que la sala se juegue</div>` : ''}
                 <div class="cupo-bar"><div class="cupo-fill ${pct >= 100 ? 'full' : ''}" style="width:${pct}%"></div></div>
             </div>
         </a>`;
@@ -402,12 +423,12 @@
                             ${!finalizado ? `<div class="countdown" data-cd="${t.fecha}"></div>` : ''}
                             <div class="grid g3" style="gap:10px">
                                 <div class="stat" style="padding:10px 6px">
-                                    <div class="stat-num grad-fire" data-valor="${t.premioTotal}" data-formato="cop">${money(t.premioTotal)}</div>
-                                    <div class="stat-lbl">Premio total</div>
+                                    <div class="stat-num grad-fire" data-valor="${t.precioKill || 0}" data-formato="cop">${money(t.precioKill || 0)}</div>
+                                    <div class="stat-lbl">Por cada kill</div>
                                 </div>
                                 <div class="stat" style="padding:10px 6px">
                                     <div class="stat-num">${money(t.costo * requeridos)}</div>
-                                    <div class="stat-lbl">Cupo ${t.modo === 'solo' ? '' : '(' + requeridos + ' jug.)'}</div>
+                                    <div class="stat-lbl">Inscripción ${t.modo === 'solo' ? '' : '(' + requeridos + ' jug.)'}</div>
                                 </div>
                                 <div class="stat" style="padding:10px 6px">
                                     <div class="stat-num">${t.inscritos}/${t.cupoMax}</div>
@@ -416,6 +437,11 @@
                             </div>
                             <div class="cupo-bar mt"><div class="cupo-fill ${pct >= 100 ? 'full' : ''}" style="width:${pct}%"></div></div>
                             <div class="muted mt">${pct >= 100 ? 'Cupos agotados' : `Quedan ${t.cupoMax - t.inscritos} cupos`}</div>
+                            ${t.minimo ? `<div class="msg ${t.inscritos >= t.minimo ? 'msg-ok' : 'msg-warn'} mt" style="font-size:.82rem">
+                                ${t.inscritos >= t.minimo
+                                    ? `<i class="bi bi-check-circle-fill"></i> Ya hay ${t.inscritos} ${unidadDe(t.modo)}: la sala se juega.`
+                                    : `Esta sala se juega con mínimo <b>${t.minimo} ${unidadDe(t.modo)}</b>. Van ${t.inscritos}: faltan ${t.minimo - t.inscritos}. Si no se llega, se cancela y se devuelve el cupo completo.`}
+                            </div>` : ''}
 
                             <div class="flex mt">
                                 ${puedeInscribirse
@@ -444,13 +470,18 @@
                 <div>
                     ${bloqueEncuesta(t)}
                     <div class="card mt">
-                        <h3 class="mb">Reparto del premio</h3>
-                        ${t.distribucion.map((d) => `
-                            <div class="t-row" style="padding:7px 0;border-bottom:1px solid var(--line)">
-                                <span><span class="p-num top${d.pos <= 3 ? d.pos : ''}" style="display:inline-grid;width:24px;height:24px;font-size:.85rem">${d.pos}</span>
-                                Puesto ${d.pos}</span>
-                                <b>${money(Math.round(t.premioTotal * d.pct / 100))} <span class="muted">(${d.pct}%)</span></b>
-                            </div>`).join('')}
+                        <h3 class="mb">Cómo se gana</h3>
+                        <div class="t-row" style="padding:9px 0;border-bottom:1px solid var(--line)">
+                            <span><i class="bi bi-crosshair"></i> Cada kill</span><b>${money(t.precioKill || 0)}</b>
+                        </div>
+                        ${t.premioGanador ? `<div class="t-row" style="padding:9px 0;border-bottom:1px solid var(--line)">
+                            <span><i class="bi bi-trophy-fill"></i> Ganar la partida</span><b>${money(t.premioGanador)}</b>
+                        </div>` : ''}
+                        <p class="muted mt" style="line-height:1.6">
+                            Se juega <b>una sola partida</b>. Lo que ganes sale de tus kills; si además quedas
+                            primero, se suma el bono. Ejemplo: 6 kills${t.premioGanador ? ' y el primer puesto' : ''}
+                            son <b>${money(6 * (t.precioKill || 0) + (t.premioGanador || 0))}</b>.
+                        </p>
                     </div>
                     <div class="card mt">
                         <h3 class="mb">Reglas del torneo</h3>
@@ -1010,7 +1041,17 @@
             $('#recOk', m).onclick = async function () {
                 this.disabled = true; this.textContent = 'Procesando pago...';
                 try {
-                    await S.recargar($('#recMonto', m).value, $('#recMetodo', m).value, $('#recRef', m).value.trim());
+                    const r = await S.recargar($('#recMonto', m).value, $('#recMetodo', m).value, $('#recRef', m).value.trim());
+
+                    // Con pasarela conectada, el jugador se va a pagar a Wompi y
+                    // vuelve solo; el saldo lo acredita el aviso que Wompi manda
+                    // al servidor, no este navegador.
+                    if (r && r.checkout && r.checkout.url) {
+                        toast('Te llevamos a la pasarela de pago...', 'ok');
+                        window.location.href = r.checkout.url;
+                        return;
+                    }
+
                     cerrarModal();
                     toast(S.modo === 'api'
                         ? 'Recarga enviada. Queda en revisión hasta que el organizador confirme el pago.'
@@ -1276,69 +1317,156 @@
                 </div>
                 <h3 style="margin:4px 0">${esc(t.nombre)}</h3>
                 <div class="muted mb">${fecha(t.fecha)} · ${t.inscritos}/${t.cupoMax} · Premio ${money(t.premioTotal)}</div>
-                <div class="muted mb">Recaudado hasta ahora: <b style="color:var(--verde)">${money(t.jugadores * t.costo)}</b><br>
-                    Si se llena: <b>${money(t.cupoMax * S.cupoPorModo[t.modo] * t.costo)}</b>
-                    · Balance con el premio: <b style="color:${t.cupoMax * S.cupoPorModo[t.modo] * t.costo - t.premioTotal >= 0 ? 'var(--verde)' : 'var(--rojo)'}">${money(t.cupoMax * S.cupoPorModo[t.modo] * t.costo - t.premioTotal)}</b></div>
+                <div class="muted mb">Recaudado hasta ahora: <b style="color:var(--verde)">${money(t.jugadores * t.costo)}</b>
+                    · Premios: ${esc(textoPremio(t))}<br>
+                    ${t.minimo ? (t.inscritos >= t.minimo
+                        ? `<b style="color:var(--verde)">Ya se juega</b> (mínimo ${t.minimo})`
+                        : `<b style="color:var(--amarillo)">Faltan ${t.minimo - t.inscritos} ${unidadDe(t.modo)}</b> para el mínimo de ${t.minimo}`) : ''}</div>
                 <div class="flex">
                     <a href="#/torneo/${t.id}" class="btn btn-ghost btn-sm"><i class="bi bi-eye"></i> Ver</a>
+                    <button class="btn btn-ghost btn-sm" data-editar="${t.id}"><i class="bi bi-pencil"></i> Editar</button>
                     <button class="btn btn-oro btn-sm" data-sala="${t.id}"><i class="bi bi-door-open-fill"></i> ${t.sala.publicada ? 'Editar sala' : 'Publicar sala'}</button>
                     <button class="btn btn-fire btn-sm" data-result="${t.id}"><i class="bi bi-list-ol"></i> Resultados</button>
                     ${t.estado !== 'finalizado' ? `<button class="btn btn-ghost btn-sm" data-cerrar-insc="${t.id}">${t.estado === 'abierto' ? 'Cerrar inscripciones' : 'Reabrir'}</button>` : ''}
+                    ${t.estado !== 'cancelado' && t.estado !== 'finalizado' ? `<button class="btn btn-danger btn-sm" data-cancelar="${t.id}">Cancelar y devolver</button>` : ''}
                 </div>
             </div>`).join('')}</div>`;
     }
 
-    function adminCrear() {
-        return `<div class="card" style="max-width:620px">
-            <h3 class="mb">Nuevo torneo</h3>
-            <div id="crearMsg"></div>
+    /* Un solo formulario para crear y para editar. Si se le pasa un torneo,
+       viene relleno con sus datos; si no, con lo que se propone para el modo. */
+    function camposTorneo(t) {
+        const v = t || {};
+        const base = REGLAS_MODO[v.modo || 'solo'];
+        const fechaLocal = v.fecha ? new Date(new Date(v.fecha) - new Date(v.fecha).getTimezoneOffset() * 60000)
+            .toISOString().slice(0, 16) : '';
+        return `
             <div class="field">
                 <label>Nombre</label>
-                <input type="text" id="cNombre" placeholder="Copa Barranquilla — Escuadra">
+                <input type="text" id="cNombre" value="${esc(v.nombre || '')}" placeholder="Copa Barranquilla — Escuadra">
             </div>
             <div class="row-2">
                 <div class="field">
                     <label>Modo</label>
-                    <select id="cModo"><option value="solo">Solo</option><option value="duo">Dúo</option><option value="escuadra" selected>Escuadra</option></select>
+                    <select id="cModo">
+                        <option value="solo" ${v.modo === 'solo' ? 'selected' : ''}>Solo</option>
+                        <option value="duo" ${v.modo === 'duo' ? 'selected' : ''}>Dúo</option>
+                        <option value="escuadra" ${v.modo === 'escuadra' ? 'selected' : ''}>Escuadra</option>
+                    </select>
                 </div>
                 <div class="field">
                     <label>Fecha y hora</label>
-                    <input type="datetime-local" id="cFecha">
+                    <input type="datetime-local" id="cFecha" value="${fechaLocal}">
                 </div>
             </div>
             <div class="row-2">
                 <div class="field">
-                    <label>Cupo máximo (equipos o jugadores)</label>
-                    <input type="number" id="cCupo" value="12" min="2">
+                    <label>Inscripción por jugador</label>
+                    <input type="number" id="cCosto" value="${v.costo !== undefined ? v.costo : base.costo}" min="0" step="500">
                 </div>
                 <div class="field">
-                    <label>Costo por jugador (COP)</label>
-                    <input type="number" id="cCosto" value="5000" min="0" step="500">
+                    <label>Cupo máximo</label>
+                    <input type="number" id="cCupo" value="${v.cupoMax || 48}" min="1">
+                    <div class="hint" id="cUnidad"></div>
                 </div>
             </div>
             <div class="row-2">
                 <div class="field">
-                    <label>Premio total (COP)</label>
-                    <input type="number" id="cPremio" value="180000" min="0" step="1000">
-                    <div class="hint" id="cSugerido"></div>
+                    <label>Premio por kill</label>
+                    <input type="number" id="cKill" value="${v.precioKill !== undefined ? v.precioKill : base.precioKill}" min="0" step="500">
+                </div>
+                <div class="field">
+                    <label>Premio al ganador</label>
+                    <input type="number" id="cGanador" value="${v.premioGanador !== undefined ? v.premioGanador : base.premioGanador}" min="0" step="1000">
+                    <div class="hint">0 = sin bono por ganar</div>
+                </div>
+            </div>
+            <div class="row-2">
+                <div class="field">
+                    <label>Mínimo para que se juegue</label>
+                    <input type="number" id="cMinimo" value="${v.minimo !== undefined ? v.minimo : base.minimo}" min="0">
+                    <div class="hint" id="cMinimoNota"></div>
                 </div>
                 <div class="field">
                     <label>Mapa</label>
-                    <select id="cMapa">${['Bermuda', 'Purgatorio', 'Kalahari', 'Alpes', 'NexTerra'].map((m) => `<option>${m}</option>`).join('')}</select>
+                    <select id="cMapa">${['Bermuda', 'Purgatorio', 'Kalahari', 'Alpes', 'NexTerra']
+                        .map((mp) => `<option ${v.mapa === mp ? 'selected' : ''}>${mp}</option>`).join('')}</select>
                 </div>
             </div>
             <div class="field">
-                <label>Reparto (posición:porcentaje, separado por coma)</label>
-                <input type="text" id="cDist" value="1:55, 2:30, 3:15">
-            </div>
-            <div class="field">
                 <label>Color de la tarjeta</label>
-                <select id="cTema"><option value="fuego">Naranja</option><option value="neon">Brasa (rojo)</option><option value="hielo">Oro</option></select>
+                <select id="cTema">
+                    <option value="fuego" ${v.tema === 'fuego' ? 'selected' : ''}>Naranja</option>
+                    <option value="neon" ${v.tema === 'neon' ? 'selected' : ''}>Brasa (rojo)</option>
+                    <option value="hielo" ${v.tema === 'hielo' ? 'selected' : ''}>Oro</option>
+                </select>
             </div>
             <div class="field">
                 <label>Reglas (una por línea)</label>
-                <textarea id="cReglas" placeholder="Prohibido emuladores&#10;Entrar 10 minutos antes"></textarea>
+                <textarea id="cReglas" placeholder="Prohibido emuladores&#10;Entrar 10 minutos antes">${esc((v.reglas || []).join('\n'))}</textarea>
             </div>
+            <div class="msg msg-info" id="cResumen" style="font-size:.82rem"></div>`;
+    }
+
+    /* Recalcula el resumen mientras se escribe: cuánto se recauda, cuánto
+       se puede llegar a pagar y si el torneo queda en pérdida. */
+    function conectarCalculadora(raiz) {
+        const $$$ = (s) => $(s, raiz || document);
+        const modo = $$$('#cModo'), cupo = $$$('#cCupo'), costo = $$$('#cCosto'),
+              kill = $$$('#cKill'), ganador = $$$('#cGanador'), minimo = $$$('#cMinimo');
+        if (!modo) return;
+
+        const recalcular = (cambioDeModo) => {
+            const base = REGLAS_MODO[modo.value];
+            if (cambioDeModo) {
+                costo.value = base.costo; kill.value = base.precioKill;
+                ganador.value = base.premioGanador; minimo.value = base.minimo;
+            }
+            const jugadoresPorEquipo = S.cupoPorModo[modo.value];
+            const equipos = Number(cupo.value) || 0;
+            const jugadores = equipos * jugadoresPorEquipo;
+            const recauda = jugadores * (Number(costo.value) || 0);
+            // En una partida hay tantas kills como jugadores menos el ganador
+            const killsPosibles = Math.max(0, jugadores - 1);
+            const pagoMax = killsPosibles * (Number(kill.value) || 0) + (Number(ganador.value) || 0);
+
+            $$$('#cUnidad').textContent = modo.value === 'solo'
+                ? 'jugadores' : `${base.unidad} (${jugadoresPorEquipo} jugadores cada uno)`;
+            $$$('#cMinimoNota').textContent = `${base.unidad} para que la sala se juegue`;
+            $$$('#cResumen').innerHTML =
+                `Si se llena: <b>${jugadores} jugadores</b> y recaudas <b>${money(recauda)}</b>.<br>` +
+                `Pago máximo posible (todas las kills + el bono): <b>${money(pagoMax)}</b>.<br>` +
+                `Te quedarían <b style="color:${recauda - pagoMax >= 0 ? 'var(--verde)' : 'var(--rojo)'}">${money(recauda - pagoMax)}</b>` +
+                (recauda - pagoMax < 0 ? ' — ojo, así el torneo te cuesta plata.' : '.');
+        };
+
+        modo.onchange = () => recalcular(true);
+        [cupo, costo, kill, ganador, minimo].forEach((c) => { c.oninput = () => recalcular(false); });
+        recalcular(false);
+    }
+
+    function leerFormularioTorneo(raiz) {
+        const $$$ = (s) => $(s, raiz || document);
+        return {
+            nombre: $$$('#cNombre').value.trim(),
+            modo: $$$('#cModo').value,
+            fecha: $$$('#cFecha').value ? new Date($$$('#cFecha').value).toISOString() : '',
+            cupoMax: $$$('#cCupo').value,
+            costo: $$$('#cCosto').value,
+            precioKill: $$$('#cKill').value,
+            premioGanador: $$$('#cGanador').value,
+            minimo: $$$('#cMinimo').value,
+            mapa: $$$('#cMapa').value,
+            tema: $$$('#cTema').value,
+            reglas: $$$('#cReglas').value.split('\n').map((s) => s.trim()).filter(Boolean)
+        };
+    }
+
+    function adminCrear() {
+        return `<div class="card" style="max-width:620px;margin:0 auto">
+            <h3 class="mb">Nuevo torneo</h3>
+            <div id="crearMsg"></div>
+            ${camposTorneo(null)}
             <button class="btn btn-fire btn-block" id="btnCrearTorneo">Crear torneo</button>
         </div>`;
     }
@@ -1460,38 +1588,12 @@
         };
 
         /* --- Crear torneo --- */
-        const bct = $('#btnCrearTorneo');
-        if (bct) {
-            const calcular = () => {
-                const cupo = +$('#cCupo').value || 0;
-                const costo = +$('#cCosto').value || 0;
-                const modo = $('#cModo').value;
-                const bruto = cupo * S.cupoPorModo[modo] * costo;
-                const sug = Math.round(bruto * (100 - S.config().comision) / 100 / 1000) * 1000;
-                $('#cSugerido').innerHTML = `Si se llena: recauda <b>${money(bruto)}</b>. Premio sugerido (${100 - S.config().comision}%): <b>${money(sug)}</b>`;
-            };
-            ['cCupo', 'cCosto', 'cModo'].forEach((id) => { $('#' + id).oninput = calcular; $('#' + id).onchange = calcular; });
-            calcular();
-
-            bct.onclick = async function () {
-                const dist = $('#cDist').value.split(',').map((p) => {
-                    const [pos, pct] = p.split(':').map((x) => parseInt(x, 10));
-                    return pos && pct ? { pos, pct } : null;
-                }).filter(Boolean);
+        if ($('#btnCrearTorneo')) {
+            conectarCalculadora(document);
+            $('#btnCrearTorneo').onclick = async function () {
                 this.disabled = true;
                 try {
-                    const t = await S.crearTorneo({
-                        nombre: $('#cNombre').value.trim(),
-                        modo: $('#cModo').value,
-                        fecha: $('#cFecha').value ? new Date($('#cFecha').value).toISOString() : '',
-                        cupoMax: $('#cCupo').value,
-                        costo: $('#cCosto').value,
-                        premioTotal: $('#cPremio').value,
-                        distribucion: dist,
-                        mapa: $('#cMapa').value,
-                        tema: $('#cTema').value,
-                        reglas: $('#cReglas').value
-                    });
+                    const t = await S.crearTorneo(leerFormularioTorneo(document));
                     toast('Torneo creado', 'ok');
                     adminTab = 'torneos';
                     location.hash = '#/torneo/' + t.id;
@@ -1502,6 +1604,65 @@
                 }
             };
         }
+
+        /* --- Editar un torneo que ya existe --- */
+        $$('[data-editar]').forEach((b) => {
+            b.onclick = async () => {
+                const t = await S.torneo(b.dataset.editar);
+                const m = modal('Editar — ' + t.nombre, `
+                    ${t.inscritos > 0 ? `<div class="msg msg-warn">
+                        Este torneo ya tiene <b>${t.inscritos} inscrito(s)</b>. Puedes corregir lo que
+                        necesites, pero si cambias la inscripción, a los que ya pagaron no se les
+                        cobra ni se les devuelve la diferencia: eso hay que arreglarlo aparte.
+                    </div>` : ''}
+                    <div id="editarMsg"></div>
+                    ${camposTorneo(t)}
+                    <button class="btn btn-fire btn-block" id="btnGuardarTorneo">Guardar cambios</button>
+                `);
+                conectarCalculadora(m);
+                $('#btnGuardarTorneo', m).onclick = async function () {
+                    this.disabled = true; this.textContent = 'Guardando...';
+                    try {
+                        await S.actualizarTorneo(t.id, leerFormularioTorneo(m));
+                        cerrarModal(); toast('Torneo actualizado', 'ok'); render();
+                    } catch (e) {
+                        $('#editarMsg', m).innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>`;
+                        this.disabled = false; this.textContent = 'Guardar cambios';
+                    }
+                };
+            };
+        });
+
+        /* --- Cancelar el torneo y devolver el dinero --- */
+        $$('[data-cancelar]').forEach((b) => {
+            b.onclick = async () => {
+                const t = await S.torneo(b.dataset.cancelar);
+                const m = modal('Cancelar — ' + t.nombre, `
+                    <div class="msg msg-warn">
+                        Se cancela el torneo y se le devuelve el cupo completo a los
+                        <b>${t.inscritos} inscrito(s)</b>. El dinero vuelve al saldo de cada uno
+                        al instante. Esto no se puede deshacer.
+                    </div>
+                    <div id="cancelarMsg"></div>
+                    <button class="btn btn-danger btn-block" id="btnConfirmarCancelar">
+                        Sí, cancelar y devolver ${money(t.jugadores * t.costo)}
+                    </button>
+                    <button class="btn btn-ghost btn-block mt" data-cerrar>Mejor no</button>
+                `);
+                $('#btnConfirmarCancelar', m).onclick = async function () {
+                    this.disabled = true; this.textContent = 'Devolviendo...';
+                    try {
+                        const r = await S.cancelarTorneo(t.id);
+                        cerrarModal();
+                        toast(`Torneo cancelado, se devolvió el cupo a ${r.devueltos} inscrito(s)`, 'ok');
+                        render();
+                    } catch (e) {
+                        $('#cancelarMsg', m).innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>`;
+                        this.disabled = false;
+                    }
+                };
+            };
+        });
 
         /* --- Publicar sala --- */
         $$('[data-sala]').forEach((b) => {
@@ -1544,19 +1705,37 @@
                 const t = await S.torneo(b.dataset.result);
                 if (!t.participantes.length) return toast('Ese torneo no tiene inscritos', 'err');
                 const m = modal('Resultados — ' + t.nombre, `
+                    <div class="msg msg-info" style="font-size:.84rem">
+                        El premio se calcula solo: <b>${money(t.precioKill || 0)} por kill</b>${t.premioGanador
+                            ? ` más <b>${money(t.premioGanador)}</b> para el puesto 1` : ''}.
+                    </div>
                     <div class="msg msg-warn">Al guardar, los premios se abonan al saldo de cada ganador y el torneo queda finalizado.</div>
                     <div id="resMsg"></div>
                     <div class="tabla-wrap"><table>
-                        <thead><tr><th>Equipo</th><th>Puesto</th><th>Kills</th><th>Puntos</th></tr></thead>
+                        <thead><tr><th>Equipo</th><th>Puesto</th><th>Kills</th><th>Puntos</th><th>Premio</th></tr></thead>
                         <tbody>${t.participantes.map((p) => `<tr>
                             <td><b>${esc(p.equipo.nombre)}</b></td>
                             <td><input type="number" data-r-puesto="${p.id}" value="${p.resultado ? p.resultado.puesto : ''}" min="1" style="width:74px;padding:8px"></td>
                             <td><input type="number" data-r-kills="${p.id}" value="${p.resultado ? p.resultado.kills : ''}" min="0" style="width:74px;padding:8px"></td>
                             <td><input type="number" data-r-puntos="${p.id}" value="${p.resultado ? p.resultado.puntos : ''}" min="0" style="width:74px;padding:8px"></td>
+                            <td class="nowrap"><b data-r-premio="${p.id}" style="color:var(--verde)">${money(p.resultado ? p.resultado.premio : 0)}</b></td>
                         </tr>`).join('')}</tbody>
                     </table></div>
                     <button class="btn btn-fire btn-block mt" id="resOk">Guardar y pagar premios</button>
                 `);
+                // El premio se muestra mientras el organizador escribe, para que
+                // vea lo que va a pagar antes de guardar.
+                const recalcularPremios = () => {
+                    t.participantes.forEach((p) => {
+                        const kills = Number($(`[data-r-kills="${p.id}"]`, m).value) || 0;
+                        const puesto = Number($(`[data-r-puesto="${p.id}"]`, m).value) || 0;
+                        const premio = kills * (t.precioKill || 0) + (puesto === 1 ? (t.premioGanador || 0) : 0);
+                        $(`[data-r-premio="${p.id}"]`, m).textContent = money(premio);
+                    });
+                };
+                $$('[data-r-kills], [data-r-puesto]', m).forEach((c) => { c.oninput = recalcularPremios; });
+                recalcularPremios();
+
                 $('#resOk', m).onclick = async function () {
                     this.disabled = true; this.textContent = 'Guardando...';
                     const filas = t.participantes.map((p) => ({

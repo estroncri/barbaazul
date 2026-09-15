@@ -50,8 +50,11 @@ CREATE TABLE IF NOT EXISTS torneos (
     fecha         TEXT NOT NULL,
     cupo_max      INTEGER NOT NULL,
     costo         INTEGER NOT NULL,
-    premio_total  INTEGER NOT NULL,
-    distribucion  TEXT NOT NULL,
+    premio_total  INTEGER NOT NULL DEFAULT 0,
+    distribucion  TEXT NOT NULL DEFAULT '[]',
+    precio_kill    INTEGER NOT NULL DEFAULT 0,
+    premio_ganador INTEGER NOT NULL DEFAULT 0,
+    minimo         INTEGER NOT NULL DEFAULT 0,
     mapa          TEXT,
     reglas        TEXT NOT NULL DEFAULT '[]',
     estado        TEXT NOT NULL DEFAULT 'abierto',
@@ -98,6 +101,23 @@ CREATE INDEX IF NOT EXISTS idx_mov_usuario  ON movimientos (usuario_id, estado);
 CREATE INDEX IF NOT EXISTS idx_insc_torneo  ON inscripciones (torneo_id);
 CREATE INDEX IF NOT EXISTS idx_sesion_user  ON sesiones (usuario_id);
 `);
+
+/* Migración suave: las bases creadas antes del modelo de premios por kill
+   no tienen estas columnas. Se añaden sin tocar los datos existentes. */
+(function migrar() {
+    const columnas = db.prepare('PRAGMA table_info(torneos)').all().map((c) => c.name);
+    const faltantes = [
+        ['precio_kill', 'INTEGER NOT NULL DEFAULT 0'],
+        ['premio_ganador', 'INTEGER NOT NULL DEFAULT 0'],
+        ['minimo', 'INTEGER NOT NULL DEFAULT 0']
+    ];
+    for (const [nombre, tipo] of faltantes) {
+        if (!columnas.includes(nombre)) {
+            db.exec(`ALTER TABLE torneos ADD COLUMN ${nombre} ${tipo}`);
+            console.log('  base de datos: columna añadida →', nombre);
+        }
+    }
+})();
 
 /* ===== Utilidades ===== */
 const uid = (p) => p + '_' + crypto.randomBytes(8).toString('hex');

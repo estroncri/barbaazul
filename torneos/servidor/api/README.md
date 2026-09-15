@@ -91,11 +91,72 @@ sqlite3 /data/torneos.db ".backup '/data/respaldo-$(date +%F).db'"
 
 Vale la pena programarlo a diario. Son las cuentas y el dinero de la gente.
 
+## Cobrar con Wompi
+
+Con esto conectado, el jugador paga con tarjeta, Nequi o PSE y **el saldo se
+acredita solo** cuando Wompi avisa que el pago salió bien.
+
+### Variables de entorno
+
+| Variable | De dónde sale |
+|----------|---------------|
+| `WOMPI_LLAVE_PUBLICA` | Wompi → Desarrollo → Programadores → *Llave pública* |
+| `WOMPI_INTEGRIDAD` | La misma pantalla → Secretos → *Integridad* |
+| `WOMPI_EVENTOS` | La misma pantalla → Secretos → *Eventos* |
+| `WOMPI_REDIRECT` | A dónde vuelve el jugador tras pagar. Ej: `https://estroncri.github.io/barbaazul/torneos/#/billetera` |
+
+Y en Wompi, en **URL de Eventos**, se pone la dirección de tu servidor:
+
+```
+https://tu-servidor.onrender.com/api/wompi/eventos
+```
+
+### Tres cosas que no se pueden hacer mal
+
+1. **La llave privada, el secreto de integridad y el de eventos NUNCA van al
+   navegador.** La llave *pública* sí puede verse, para eso es. Los otros tres,
+   si alguien los consigue, puede firmar cobros a tu nombre o inventar avisos de
+   pagos que nunca ocurrieron. Van solo en las variables de entorno del servidor.
+2. **Empieza en modo de pruebas.** Wompi tiene un botón de *Activar modo de
+   pruebas* con llaves `pub_test_...`. Haz ahí las primeras recargas; cuando
+   funcione, cambias a las de producción.
+3. **Nunca compartas capturas de esa pantalla con los secretos visibles.** Si
+   llegaste a mostrar alguno, usa *Rotación de llaves privadas* y actualiza las
+   variables del servidor.
+
+### Cómo se comprueba que un pago es de verdad
+
+La dirección de eventos es pública: la puede llamar cualquiera que la adivine.
+Antes de acreditar un solo peso, el servidor comprueba, en este orden:
+
+1. **La firma del evento**, con el secreto de eventos. Un aviso inventado no
+   pasa de aquí.
+2. **Que la referencia exista** y corresponda a una recarga que ese jugador pidió.
+3. **Que no esté resuelta ya.** Wompi reintenta los avisos; sin esto, una misma
+   recarga se acreditaría dos veces.
+4. **Que el monto pagado sea exactamente el solicitado.** Si no coincide, se
+   marca como rechazada y no acredita.
+
+Todo eso está probado: un evento falsificado devuelve 401, uno con monto
+distinto no acredita, y el mismo evento repetido no suma dos veces.
+
+### Comprobar la firma con tus llaves reales
+
+```bash
+WOMPI_LLAVE_PUBLICA=pub_prod_... WOMPI_INTEGRIDAD=... \
+  node -e "const w=require('./torneos/servidor/api/wompi.js');
+           console.log(w.checkout('TFF-prueba', 20000).url)"
+```
+
+Abre esa dirección: si Wompi muestra el cobro por $20.000 sin quejarse de la
+firma, las llaves están bien puestas.
+
 ## Lo que todavía no hace
 
-- **Cobrar de verdad.** Las recargas las confirma una persona. Para que el banco
-  las confirme solo hay que conectar una pasarela (Wompi, Bold) y que su webhook
-  llame a un endpoint que marque el movimiento como completado.
-- **Pagar retiros solo.** El organizador transfiere y marca como pagado.
+- **Pagar los retiros solo.** El organizador transfiere por Nequi o banco y lo
+  marca como pagado. Wompi tiene *Pagos a Terceros*, que serviría para
+  automatizarlo más adelante.
+- **Sin las variables de Wompi**, las recargas vuelven al modo manual: el
+  jugador paga por fuera y el organizador confirma desde el panel.
 - **Recuperar contraseña.** Por ahora, si alguien la olvida, se cambia a mano en
   la base de datos.

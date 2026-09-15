@@ -160,6 +160,8 @@
 
         misTorneos: () => pedir('/mis-torneos'),
 
+        cancelarTorneo: (id) => pedir('/torneos/' + encodeURIComponent(id) + '/cancelar', { metodo: 'POST' }),
+
         registrarResultados: async (torneoId, filas) => {
             const r = await pedir('/torneos/' + encodeURIComponent(torneoId) + '/resultados',
                 { metodo: 'POST', cuerpo: { filas } });
@@ -173,8 +175,10 @@
         recargar: async (monto, metodo, ref) => {
             const r = await pedir('/recargas', { metodo: 'POST', cuerpo: { monto: Number(monto), metodo, ref } });
             await refrescarYo();
-            return r;
+            return r;   // { movimiento, checkout? } — si hay checkout, el navegador va a la pasarela
         },
+
+        pasarela: () => pedir('/pasarela'),
 
         solicitarRetiro: async (monto, metodo, cuenta) => {
             const r = await pedir('/retiros', { metodo: 'POST', cuerpo: { monto: Number(monto), metodo, cuenta } });

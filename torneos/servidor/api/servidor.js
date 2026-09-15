@@ -11,11 +11,20 @@
 const http = require('node:http');
 const crypto = require('node:crypto');
 const { db, uid, ahora, hashPass, verificarPass, saldoDe } = require('./db');
+const wompi = require('./wompi');
 
 const PUERTO = Number(process.env.PUERTO || 8790);
 const ORIGENES = (process.env.ORIGENES ||
     'https://estroncri.github.io,http://localhost:8099,http://127.0.0.1:8099').split(',');
 const CUPO_POR_MODO = { solo: 1, duo: 2, escuadra: 4 };
+
+/* Reglas por defecto de cada modo. El organizador puede cambiarlas torneo
+   por torneo desde el panel; esto es solo lo que se propone al crear. */
+const REGLAS_MODO = {
+    solo:     { costo: 5000, minimo: 20, precioKill: 3000, premioGanador: 10000 },
+    duo:      { costo: 5000, minimo: 5,  precioKill: 3000, premioGanador: 15000 },
+    escuadra: { costo: 5000, minimo: 10, precioKill: 3500, premioGanador: 0 }
+};
 const MIN_RETIRO = Number(process.env.MIN_RETIRO || 10000);
 const MIN_RECARGA = Number(process.env.MIN_RECARGA || 1000);
 
@@ -72,6 +81,7 @@ function torneoPublico(t, extras) {
     return Object.assign({
         id: t.id, nombre: t.nombre, modo: t.modo, fecha: t.fecha,
         cupoMax: t.cupo_max, costo: t.costo, premioTotal: t.premio_total,
+        precioKill: t.precio_kill, premioGanador: t.premio_ganador, minimo: t.minimo,
         distribucion: JSON.parse(t.distribucion), mapa: t.mapa,
         reglas: JSON.parse(t.reglas), estado: t.estado, tema: t.tema,
         encuesta: t.encuesta ? JSON.parse(t.encuesta) : null,
@@ -186,12 +196,18 @@ ruta('POST', /^\/api\/torneos$/, (ctx) => {
     if (!d.fecha) throw malaPeticion('Falta la fecha y hora.');
     if (!CUPO_POR_MODO[d.modo]) throw malaPeticion('Modo inválido.');
 
+    const base = REGLAS_MODO[d.modo];
+    const num = (v, pordefecto) => (v === undefined || v === null || v === '' ? pordefecto : Math.max(0, Math.round(Number(v) || 0)));
+
     const id = uid('t');
-    db.prepare(`INSERT INTO torneos (id, nombre, modo, fecha, cupo_max, costo, premio_total, distribucion, mapa, reglas, estado, tema, creado)
-                VALUES (?,?,?,?,?,?,?,?,?,?,'abierto',?,?)`)
-        .run(id, String(d.nombre).trim(), d.modo, d.fecha, Number(d.cupoMax) || 12,
-             Math.max(0, Math.round(Number(d.costo) || 0)), Math.max(0, Math.round(Number(d.premioTotal) || 0)),
-             JSON.stringify(d.distribucion && d.distribucion.length ? d.distribucion : [{ pos: 1, pct: 60 }, { pos: 2, pct: 25 }, { pos: 3, pct: 15 }]),
+    db.prepare(`INSERT INTO torneos (id, nombre, modo, fecha, cupo_max, costo, premio_total, distribucion,
+                                     precio_kill, premio_ganador, minimo, mapa, reglas, estado, tema, creado)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'abierto',?,?)`)
+        .run(id, String(d.nombre).trim(), d.modo, d.fecha, num(d.cupoMax, 48),
+             num(d.costo, base.costo), num(d.premioTotal, 0),
+             JSON.stringify(d.distribucion || []),
+             num(d.precioKill, base.precioKill), num(d.premioGanador, base.premioGanador),
+             num(d.minimo, base.minimo),
              d.mapa || 'Bermuda', JSON.stringify(d.reglas || []), d.tema || 'fuego', ahora());
     return torneoPublico(db.prepare('SELECT * FROM torneos WHERE id = ?').get(id));
 });
@@ -200,14 +216,69 @@ ruta('PATCH', /^\/api\/torneos\/([\w-]+)$/, (ctx, m) => {
     ctx.exigirAdmin();
     const t = db.prepare('SELECT * FROM torneos WHERE id = ?').get(m[1]);
     if (!t) throw noEncontrado('Torneo no encontrado.');
-    if (ctx.cuerpo.estado) {
-        db.prepare('UPDATE torneos SET estado = ? WHERE id = ?').run(ctx.cuerpo.estado, t.id);
+    const c = ctx.cuerpo;
+
+    /* El organizador puede corregir cualquier dato, incluso con gente ya
+       inscrita: en la práctica se cambia la hora o el mapa a última hora.
+       Lo único que no se toca es el modo cuando ya hay equipos armados,
+       porque cambiaría cuántos jugadores debe tener cada uno. */
+    const inscritos = db.prepare('SELECT COUNT(*) n FROM inscripciones WHERE torneo_id = ?').get(t.id).n;
+    if (c.modo && c.modo !== t.modo && inscritos > 0) {
+        throw malaPeticion('No se puede cambiar el modo con gente ya inscrita. Cancela el torneo o crea otro.');
     }
-    if (ctx.cuerpo.encuesta !== undefined) {
-        db.prepare('UPDATE torneos SET encuesta = ? WHERE id = ?')
-            .run(ctx.cuerpo.encuesta ? JSON.stringify(ctx.cuerpo.encuesta) : null, t.id);
+
+    const campos = {
+        nombre: (v) => String(v).trim().slice(0, 120),
+        modo: (v) => (CUPO_POR_MODO[v] ? v : t.modo),
+        fecha: (v) => String(v),
+        cupo_max: (v) => Math.max(1, Math.round(Number(v) || 0)),
+        costo: (v) => Math.max(0, Math.round(Number(v) || 0)),
+        precio_kill: (v) => Math.max(0, Math.round(Number(v) || 0)),
+        premio_ganador: (v) => Math.max(0, Math.round(Number(v) || 0)),
+        minimo: (v) => Math.max(0, Math.round(Number(v) || 0)),
+        mapa: (v) => String(v).slice(0, 40),
+        tema: (v) => String(v).slice(0, 20),
+        estado: (v) => String(v).slice(0, 20),
+        reglas: (v) => JSON.stringify(Array.isArray(v) ? v : String(v).split('\n').map((x) => x.trim()).filter(Boolean)),
+        encuesta: (v) => (v ? JSON.stringify(v) : null)
+    };
+    const alias = { cupoMax: 'cupo_max', precioKill: 'precio_kill', premioGanador: 'premio_ganador' };
+
+    for (const clave of Object.keys(c)) {
+        const columna = alias[clave] || clave;
+        if (!campos[columna]) continue;
+        db.prepare(`UPDATE torneos SET ${columna} = ? WHERE id = ?`).run(campos[columna](c[clave]), t.id);
     }
     return torneoPublico(db.prepare('SELECT * FROM torneos WHERE id = ?').get(t.id));
+});
+
+/* Cancelar el torneo y devolverle el cupo a todo el mundo.
+   Es lo que toca hacer cuando no se llega al mínimo para que la sala se juegue. */
+ruta('POST', /^\/api\/torneos\/([\w-]+)\/cancelar$/, (ctx, m) => {
+    ctx.exigirAdmin();
+    db.exec('BEGIN IMMEDIATE');
+    try {
+        const t = db.prepare('SELECT * FROM torneos WHERE id = ?').get(m[1]);
+        if (!t) throw noEncontrado('Torneo no encontrado.');
+        if (t.estado === 'cancelado') throw malaPeticion('Ese torneo ya está cancelado.');
+
+        const inscripciones = db.prepare('SELECT * FROM inscripciones WHERE torneo_id = ?').all(t.id);
+        for (const i of inscripciones) {
+            const devolver = t.costo * JSON.parse(i.miembros).length;
+            if (devolver > 0) {
+                anotar(i.usuario_id, 'reembolso', devolver, {
+                    metodo: 'Saldo', referencia: t.id,
+                    nota: 'Torneo cancelado — ' + t.nombre
+                });
+            }
+        }
+        db.prepare("UPDATE torneos SET estado = 'cancelado' WHERE id = ?").run(t.id);
+        db.exec('COMMIT');
+        return { ok: true, devueltos: inscripciones.length };
+    } catch (e) {
+        db.exec('ROLLBACK');
+        throw e;
+    }
 });
 
 ruta('POST', /^\/api\/torneos\/([\w-]+)\/sala$/, (ctx, m) => {
@@ -310,7 +381,6 @@ ruta('POST', /^\/api\/torneos\/([\w-]+)\/resultados$/, (ctx, m) => {
     try {
         const t = db.prepare('SELECT * FROM torneos WHERE id = ?').get(m[1]);
         if (!t) throw noEncontrado('Torneo no encontrado.');
-        const distribucion = JSON.parse(t.distribucion);
 
         for (const fila of (ctx.cuerpo.filas || [])) {
             const i = db.prepare('SELECT * FROM inscripciones WHERE id = ? AND torneo_id = ?').get(fila.inscripcionId, t.id);
@@ -324,13 +394,15 @@ ruta('POST', /^\/api\/torneos\/([\w-]+)\/resultados$/, (ctx, m) => {
             }
 
             const puesto = Math.max(0, Number(fila.puesto) || 0);
-            const d = distribucion.find((x) => Number(x.pos) === puesto);
-            const premio = d ? Math.round(t.premio_total * d.pct / 100) : 0;
+            const kills = Math.max(0, Number(fila.kills) || 0);
+
+            // Premio = kills x precio por kill, más el bono si quedó primero.
+            const premio = kills * t.precio_kill + (puesto === 1 ? t.premio_ganador : 0);
 
             db.prepare(`INSERT INTO resultados (inscripcion_id, puesto, kills, puntos, premio) VALUES (?,?,?,?,?)
                         ON CONFLICT(inscripcion_id) DO UPDATE SET puesto=excluded.puesto, kills=excluded.kills,
                         puntos=excluded.puntos, premio=excluded.premio`)
-                .run(i.id, puesto, Math.max(0, Number(fila.kills) || 0), Math.max(0, Number(fila.puntos) || 0), premio);
+                .run(i.id, puesto, kills, Math.max(0, Number(fila.puntos) || 0), premio);
 
             if (premio > 0) {
                 anotar(i.usuario_id, 'premio', premio, { metodo: 'Saldo', referencia: t.id, nota: `Puesto #${puesto} — ${t.nombre}` });
@@ -358,12 +430,83 @@ ruta('POST', /^\/api\/recargas$/, (ctx) => {
     const yo = ctx.exigirUsuario();
     const monto = Math.round(Number(ctx.cuerpo.monto) || 0);
     if (monto < MIN_RECARGA) throw malaPeticion(`La recarga mínima es de $${MIN_RECARGA.toLocaleString('es-CO')}.`);
+
+    const conPasarela = wompi.configurado();
     const m = anotar(yo.id, 'recarga', monto, {
-        estado: 'pendiente', metodo: String(ctx.cuerpo.metodo || 'Nequi').slice(0, 30),
-        referencia: String(ctx.cuerpo.ref || '').slice(0, 60), nota: 'Recarga en revisión'
+        estado: 'pendiente',
+        metodo: conPasarela ? 'Wompi' : String(ctx.cuerpo.metodo || 'Nequi').slice(0, 30),
+        referencia: '',
+        nota: conPasarela ? 'Esperando el pago' : 'Recarga en revisión'
     });
-    return movimientoPublico(m);
+
+    if (!conPasarela) {
+        // Sin pasarela: el jugador paga por fuera y el organizador confirma.
+        db.prepare('UPDATE movimientos SET referencia = ? WHERE id = ?')
+            .run(String(ctx.cuerpo.ref || '').slice(0, 60), m.id);
+        return { movimiento: movimientoPublico(db.prepare('SELECT * FROM movimientos WHERE id = ?').get(m.id)) };
+    }
+
+    // Con pasarela: la referencia es la del movimiento, y así el evento que
+    // llegue después se puede casar con esta recarga y no con otra.
+    const referencia = wompi.referenciaDe(m.id);
+    db.prepare('UPDATE movimientos SET referencia = ? WHERE id = ?').run(referencia, m.id);
+
+    return {
+        movimiento: movimientoPublico(db.prepare('SELECT * FROM movimientos WHERE id = ?').get(m.id)),
+        checkout: wompi.checkout(referencia, monto, {
+            email: yo.email, telefono: yo.whatsapp, nombre: yo.nick
+        })
+    };
 });
+
+/* ---------- Eventos de Wompi ----------
+   Esta dirección es pública: la llama Wompi, pero también la puede llamar
+   cualquiera que la adivine. Por eso lo primero es comprobar la firma, y
+   después que el monto coincida con lo que el jugador pidió recargar. */
+ruta('POST', /^\/api\/wompi\/eventos$/, (ctx) => {
+    const cuerpo = ctx.cuerpo || {};
+    const revision = wompi.eventoValido(cuerpo);
+    if (!revision.ok) {
+        console.warn('Evento de Wompi rechazado:', revision.razon);
+        throw new ErrorAPI(401, revision.razon);
+    }
+
+    const tx = (cuerpo.data && cuerpo.data.transaction) || {};
+    const referencia = String(tx.reference || '');
+    if (!referencia) return { ok: true, nota: 'Evento sin referencia, se ignora.' };
+
+    const mov = db.prepare("SELECT * FROM movimientos WHERE referencia = ? AND tipo = 'recarga'").get(referencia);
+    if (!mov) return { ok: true, nota: 'No hay ninguna recarga con esa referencia.' };
+
+    // Si ya se resolvió, no se vuelve a tocar: Wompi reintenta los eventos y
+    // sin esto una misma recarga se acreditaría dos veces.
+    if (mov.estado !== 'pendiente') return { ok: true, nota: 'Esa recarga ya estaba resuelta.' };
+
+    const centavos = Number(tx.amount_in_cents || 0);
+    if (centavos !== Math.round(mov.monto) * 100) {
+        db.prepare("UPDATE movimientos SET estado = 'rechazada', nota = ? WHERE id = ?")
+            .run('El monto pagado no coincide con el solicitado', mov.id);
+        console.warn('Wompi: monto distinto para', referencia, centavos, 'vs', mov.monto * 100);
+        return { ok: true, nota: 'El monto no coincide.' };
+    }
+
+    const estado = String(tx.status || '').toUpperCase();
+    if (estado === 'APPROVED') {
+        db.prepare("UPDATE movimientos SET estado = 'completada', nota = ?, metodo = ? WHERE id = ?")
+            .run('Pago aprobado por Wompi', String(tx.payment_method_type || 'Wompi').slice(0, 30), mov.id);
+    } else if (['DECLINED', 'VOIDED', 'ERROR'].includes(estado)) {
+        db.prepare("UPDATE movimientos SET estado = 'rechazada', nota = ? WHERE id = ?")
+            .run('Pago ' + estado.toLowerCase() + ' en Wompi', mov.id);
+    }
+    // PENDING y cualquier otro estado: se deja como está y se espera otro evento.
+    return { ok: true };
+});
+
+/* El navegador pregunta si hay pasarela, para saber qué pantalla mostrar */
+ruta('GET', /^\/api\/pasarela$/, () => ({
+    wompi: wompi.configurado(),
+    llavePublica: wompi.configurado() ? wompi.CFG.publica : ''
+}));
 
 ruta('POST', /^\/api\/retiros$/, (ctx) => {
     const yo = ctx.exigirUsuario();

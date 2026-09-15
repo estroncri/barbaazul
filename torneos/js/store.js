@@ -402,6 +402,25 @@ window.Store = (function () {
             return clone(t);
         },
 
+        cancelarTorneo: async (id) => {
+            await wait(DELAY);
+            if (!api.esAdmin()) throw new Error('Acción solo para administradores.');
+            const t = db.torneos.find((x) => x.id === id);
+            if (!t) throw new Error('Torneo no encontrado.');
+            const ins = inscripcionesDe(id);
+            ins.forEach((i) => {
+                const u = usuarioPorId(i.userId);
+                const devolver = t.costo * i.equipo.miembros.length;
+                if (u && devolver > 0) {
+                    u.saldo += devolver;
+                    tx(u.id, 'reembolso', devolver, { nota: 'Torneo cancelado — ' + t.nombre, metodo: 'Saldo', ref: t.id });
+                }
+            });
+            t.estado = 'cancelado';
+            save();
+            return { ok: true, devueltos: ins.length };
+        },
+
         publicarSala: async (id, salaId, pass) => {
             await wait(DELAY);
             if (!api.esAdmin()) throw new Error('Acción solo para administradores.');
