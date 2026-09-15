@@ -82,6 +82,30 @@
 
     /* ===== Countdown ===== */
     let cdTimer = null;
+    let timerVista = null;
+
+    function pararTimerVista() {
+        if (timerVista) { clearInterval(timerVista); timerVista = null; }
+    }
+
+    /* Refresco en vivo de una pantalla.
+       Solo vuelve a pintar si algo CAMBIÓ de verdad (llegó un inscrito, se
+       publicó la sala, se cerraron las inscripciones). Repintar cada vez
+       reiniciaría las animaciones y cerraría lo que el jugador tenga abierto. */
+    function vigilar(traer, firma, cada) {
+        pararTimerVista();
+        if (S.modo !== 'api') return;          // en modo local no hay nada que vigilar
+        let ultima = null;
+        timerVista = setInterval(async () => {
+            if (document.hidden || document.getElementById('modalBg')) return;
+            try {
+                const datos = await traer();
+                const f = firma(datos);
+                if (ultima !== null && f !== ultima) render();
+                ultima = f;
+            } catch (e) { /* si el servidor no responde, se reintenta luego */ }
+        }, cada || 20000);
+    }
     function iniciarCountdowns() {
         if (cdTimer) clearInterval(cdTimer);
         const pintar = () => {
@@ -334,6 +358,8 @@
     };
 
     V.torneos.despues = function () {
+        vigilar(() => S.torneos(),
+                (l) => l.map((t) => t.id + t.estado + t.inscritos).join('|'), 25000);
         $$('#tabsTorneos .tab').forEach((b) => {
             b.onclick = () => { filtroTorneos = b.dataset.f; render(); };
         });
@@ -516,6 +542,15 @@
 
     V.torneo.despues = function (id) {
         iniciarCountdowns();
+
+        // Si entra alguien más o el organizador publica la sala, la pantalla
+        // se actualiza sola: nadie tiene que recargar para ver su sala.
+        vigilar(
+            () => S.torneo(id),
+            (t) => [t.inscritos, t.estado, t.sala.publicada, t.sala.id,
+                    (t.participantes || []).length].join('|'),
+            15000
+        );
         $$('[data-copiar]').forEach((b) => { b.onclick = () => copiar(b.dataset.copiar); });
 
         const bi = $('#btnInscribir');
@@ -637,12 +672,13 @@
                 <a href="#/registro" class="btn btn-ghost btn-block">
                     <i class="bi bi-person-plus-fill"></i> Conectar mi cuenta de Free Fire
                 </a>
+                ${S.modo === 'api' ? '' : `
                 <div class="divider"></div>
                 <p class="muted center mb">Cuentas de prueba de esta demo:</p>
                 <div class="row-2">
                     <button class="btn btn-ghost btn-sm" id="btnDemo">Entrar como jugador</button>
                     <button class="btn btn-ghost btn-sm" id="btnAdmin">Entrar como admin</button>
-                </div>
+                </div>`}
             </div>
         </div>`;
     };
@@ -661,7 +697,9 @@
         };
         $('#loginPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#btnLogin').click(); });
 
-        $('#btnDemo').onclick = async () => {
+        const bd = $('#btnDemo');
+        if (!bd) return;
+        bd.onclick = async () => {
             await S.entrarComoDemo(); toast('Sesión de jugador demo', 'ok');
             location.hash = '#/'; render();
         };
@@ -958,9 +996,11 @@
                     <select id="recMetodo">${cfg.metodosPago.map((p) => `<option>${esc(p)}</option>`).join('')}</select>
                 </div>
                 <div class="field">
-                    <label>Referencia del pago (opcional)</label>
+                    <label>Referencia del pago${S.modo === 'api' ? '' : ' (opcional)'}</label>
                     <input type="text" id="recRef" placeholder="Nº de comprobante de Nequi">
-                    <div class="hint">Cuando haya pasarela conectada, este paso lo confirma el banco automáticamente.</div>
+                    <div class="hint">${S.modo === 'api'
+                        ? 'La recarga queda en revisión hasta que el organizador confirme que el pago llegó. Cuando haya pasarela conectada, eso lo confirmará el banco solo.'
+                        : 'Cuando haya pasarela conectada, este paso lo confirma el banco automáticamente.'}</div>
                 </div>
                 <button class="btn btn-fire btn-block" id="recOk">Confirmar recarga</button>
             `);
@@ -971,7 +1011,11 @@
                 this.disabled = true; this.textContent = 'Procesando pago...';
                 try {
                     await S.recargar($('#recMonto', m).value, $('#recMetodo', m).value, $('#recRef', m).value.trim());
-                    cerrarModal(); toast('Saldo recargado', 'ok'); render();
+                    cerrarModal();
+                    toast(S.modo === 'api'
+                        ? 'Recarga enviada. Queda en revisión hasta que el organizador confirme el pago.'
+                        : 'Saldo recargado', 'ok');
+                    render();
                 } catch (e) {
                     $('#recMsg', m).innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>`;
                     this.disabled = false; this.textContent = 'Confirmar recarga';
@@ -1196,22 +1240,24 @@
             </div>`;
         }
         const torneos = await S.torneos();
-        const retiros = await S.retirosPendientes();
+        const pendientes = S.pendientes ? await S.pendientes() : await S.retirosPendientes();
+        const retiros = pendientes.filter((p) => p.tipo === 'retiro');
+        const recargas = pendientes.filter((p) => p.tipo === 'recarga');
 
         const tabs = [['torneos', 'Torneos'], ['crear', 'Crear torneo'],
-            ['retiros', `Retiros${retiros.length ? ' (' + retiros.length + ')' : ''}`], ['whatsapp', 'WhatsApp']];
+            ['retiros', `Pagos${pendientes.length ? ' (' + pendientes.length + ')' : ''}`], ['whatsapp', 'WhatsApp']];
 
         let cuerpo = '';
         if (adminTab === 'torneos') cuerpo = adminTorneos(torneos);
         if (adminTab === 'crear') cuerpo = adminCrear();
-        if (adminTab === 'retiros') cuerpo = adminRetiros(retiros);
+        if (adminTab === 'retiros') cuerpo = adminRecargas(recargas) + adminRetiros(retiros);
         if (adminTab === 'whatsapp') cuerpo = adminWhatsapp(torneos);
 
         return `
         <div class="wrap">
             <div class="section-head" style="margin-top:8px">
                 <div><div class="eyebrow">Organizador</div><h2>Panel</h2></div>
-                <button class="btn btn-ghost btn-sm" id="btnReset"><i class="bi bi-arrow-repeat"></i> Reiniciar datos demo</button>
+                ${S.modo === 'api' ? '' : `<button class="btn btn-ghost btn-sm" id="btnReset"><i class="bi bi-arrow-repeat"></i> Reiniciar datos demo</button>`}
             </div>
             <div class="tabs" id="adminTabs">
                 ${tabs.map(([k, t]) => `<button class="tab ${adminTab === k ? 'on' : ''}" data-t="${k}">${t}</button>`).join('')}
@@ -1297,6 +1343,31 @@
         </div>`;
     }
 
+    function adminRecargas(recargas) {
+        if (!recargas.length) return '';
+        return `<div class="card mb">
+            <h3 class="mb">Recargas por confirmar</h3>
+            <p class="muted mb" style="font-size:.82rem">
+                El jugador dice que pagó. Revisa que la plata haya llegado de verdad antes de
+                confirmar: al confirmar, el saldo queda disponible para inscribirse.
+            </p>
+            <div class="tabla-wrap"><table>
+                <thead><tr><th>Jugador</th><th>Monto</th><th>Método</th><th>Referencia</th><th>Fecha</th><th>Acción</th></tr></thead>
+                <tbody>${recargas.map((r) => `<tr>
+                    <td><b>${esc(r.nick)}</b><div class="muted">ID ${esc(r.ffUid)}</div></td>
+                    <td class="mov-monto pos nowrap">${money(Math.abs(r.monto))}</td>
+                    <td>${esc(r.metodo)}</td>
+                    <td class="mono">${esc(r.ref || '—')}</td>
+                    <td class="nowrap">${fechaCorta(r.creado)}</td>
+                    <td><div class="flex" style="gap:6px">
+                        <button class="btn btn-ok btn-sm" data-aprobar="${r.id}">Confirmar</button>
+                        <button class="btn btn-danger btn-sm" data-rechazar="${r.id}">Rechazar</button>
+                    </div></td>
+                </tr>`).join('')}</tbody>
+            </table></div>
+        </div>`;
+    }
+
     function adminRetiros(retiros) {
         if (!retiros.length) return `<div class="empty"><i class="bi bi-check2-circle"></i>No hay retiros pendientes.</div>`;
         return `<div class="card">
@@ -1373,6 +1444,9 @@
     }
 
     V.admin.despues = async function () {
+        if (S.pendientes) {
+            vigilar(() => S.pendientes(), (p) => p.map((x) => x.id + x.estado).join('|'), 20000);
+        }
         $$('#adminTabs .tab').forEach((b) => {
             b.onclick = () => { adminTab = b.dataset.t; render(); };
         });
@@ -1503,9 +1577,17 @@
         });
 
         /* --- Retiros --- */
+        $$('[data-aprobar]').forEach((b) => {
+            b.onclick = async () => {
+                try {
+                    await (S.resolverPendiente || S.resolverRetiro)(b.dataset.aprobar, true, 'Pago confirmado');
+                    toast('Recarga confirmada, el saldo ya está disponible', 'ok'); render();
+                } catch (e) { toast(e.message, 'err'); }
+            };
+        });
         $$('[data-pagar]').forEach((b) => {
             b.onclick = async () => {
-                try { await S.resolverRetiro(b.dataset.pagar, true, 'Pago enviado'); toast('Retiro marcado como pagado', 'ok'); render(); }
+                try { await (S.resolverPendiente || S.resolverRetiro)(b.dataset.pagar, true, 'Pago enviado'); toast('Retiro marcado como pagado', 'ok'); render(); }
                 catch (e) { toast(e.message, 'err'); }
             };
         });
@@ -1513,7 +1595,10 @@
             b.onclick = async () => {
                 const nota = prompt('¿Por qué se rechaza? (el saldo se devuelve al jugador)');
                 if (nota === null) return;
-                try { await S.resolverRetiro(b.dataset.rechazar, false, nota); toast('Retiro rechazado, saldo devuelto', 'ok'); render(); }
+                try {
+                    await (S.resolverPendiente || S.resolverRetiro)(b.dataset.rechazar, false, nota);
+                    toast('Rechazado', 'ok'); render();
+                }
                 catch (e) { toast(e.message, 'err'); }
             };
         });
@@ -1588,8 +1673,17 @@
     async function render() {
         if (renderizando) return;
         renderizando = true;
+        pararTimerVista();
         contadorPalabra = 0;
         cerrarModal();
+
+        /* En modo servidor los datos del usuario pueden haber cambiado desde
+           OTRO dispositivo: el organizador confirmó una recarga, entró un
+           premio. Se refrescan en cada pantalla para no mostrar un saldo
+           viejo. */
+        if (S.modo === 'api' && S.sesionLista) {
+            try { await S.sesionLista(); } catch (e) { /* si falla, se pinta con lo que hay */ }
+        }
         const ruta = location.hash || '#/';
         app.innerHTML = `<div class="wrap" style="padding-top:20px"><div class="grid g3">
             <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div></div>`;
@@ -1635,6 +1729,7 @@
                 window.Efectos.aplicarLogo();
             }
         } catch (e) {
+            if (e && e.silencioso) return;      // petición cancelada al cambiar de pantalla
             console.error(e);
             app.innerHTML = `<div class="wrap"><div class="msg msg-err">Ocurrió un error: ${esc(e.message)}</div>
                 <a href="#/" class="btn btn-ghost">Volver al inicio</a></div>`;
@@ -1644,5 +1739,13 @@
     }
 
     window.addEventListener('hashchange', render);
-    render();
+
+    /* En modo servidor la sesión vive en un token: hay que preguntarle al
+       servidor quién es antes de pintar, o el primer render saldría como
+       si nadie hubiera iniciado sesión. */
+    if (S.sesionLista) {
+        S.sesionLista().then(render, render);
+    } else {
+        render();
+    }
 })();

@@ -48,6 +48,26 @@ También hay dos botones de acceso rápido en la pantalla **Entrar**.
 - Generar el aviso del torneo para el grupo de WhatsApp y guardar el resultado de la encuesta
   (Solo / Dúo / Escuadra) para que quede publicado en el torneo.
 
+## Los dos modos
+
+Todo depende de una línea en `js/config.js`:
+
+| `api` | Qué pasa |
+|-------|----------|
+| `''` (vacío) | **Modo local.** Cada navegador guarda lo suyo. Sirve para ver el diseño |
+| `'https://…'` | **Modo compartido.** Las inscripciones, el saldo y los resultados viven en el servidor: todos ven lo mismo |
+
+El servidor está en [`servidor/api/`](servidor/api/README.md) y no usa ninguna
+librería externa; solo Node 22 o superior. Para probarlo:
+
+```bash
+ADMIN_FF_UID=tu-id ADMIN_PASS=tu-clave node torneos/servidor/api/servidor.js
+# y en js/config.js →  api: 'http://localhost:8790/api'
+```
+
+En modo compartido la pantalla se actualiza sola: si entra otro inscrito o el
+organizador publica la sala, aparece sin recargar.
+
 ## Qué está simulado
 
 Esta demo **no mueve dinero real** y **no consulta a Garena**. Todo se guarda en el
@@ -88,8 +108,10 @@ tamaños fijos.
 torneos/
 ├── index.html          # Cascarón de la SPA (nav, footer, contenedor)
 ├── css/estilos.css       # Estilos, mobile-first, sin framework
+├── js/config.js        # La única línea que decide: modo local o modo compartido
 ├── js/perfil-ff.js     # Consulta del perfil de Free Fire por ID (proveedor + normalización + caché)
-├── js/store.js         # Capa de datos: hoy localStorage, mañana llamadas al API
+├── js/store.js         # Capa de datos en modo local (localStorage)
+├── js/store-api.js     # Capa de datos en modo compartido (habla con el servidor)
 ├── js/app.js           # Router por hash + vistas + panel de administración
 ├── servidor/
 │   ├── perfil-ff.worker.js   # Intermediario para Cloudflare Workers (evita CORS y bloqueos de IP)
