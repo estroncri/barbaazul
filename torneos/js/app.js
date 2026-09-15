@@ -651,6 +651,56 @@
         };
     };
 
+    /* Trae el nick de Free Fire a partir del ID mientras se escribe.
+
+       Solo rellena si el dato viene del juego: cuando el servicio de perfiles
+       no contesta, perfil-ff.js devuelve uno inventado para que la página no
+       se quede en blanco, y poner ese nick en una inscripción sería peor que
+       dejarla vacía. */
+    function detectarNick(m, i, region) {
+        const campoUid = $(`[data-uid="${i}"]`, m);
+        const campoNick = $(`[data-nick="${i}"]`, m);
+        const aviso = $(`[data-aviso="${i}"]`, m);
+        if (!campoUid || !campoNick) return;
+
+        let ultimo = '';
+        let aMano = false;
+        campoNick.addEventListener('input', () => { aMano = true; });
+
+        const decir = (texto, bien) => {
+            if (!aviso) return;
+            aviso.textContent = texto;
+            aviso.style.color = bien ? 'var(--oro)' : '';
+        };
+
+        const buscar = async () => {
+            const uid = (campoUid.value || '').trim();
+            if (!/^\d{6,14}$/.test(uid)) return;
+            if (uid === ultimo) return;
+            ultimo = uid;
+            decir('Buscando el nick...', false);
+            try {
+                const p = await S.consultarPerfilFF(uid, region);
+                if (p.fuente !== 'api' || !p.nick) throw new Error('sin datos del juego');
+                if (!aMano || !campoNick.value.trim()) campoNick.value = p.nick;
+                decir(`Es ${p.nick}${p.nivel ? ' · nivel ' + p.nivel : ''}. Si no es tu compañero, revisa el ID.`, true);
+            } catch (e) {
+                ultimo = '';        // que pueda reintentar con el mismo ID
+                decir('No pudimos traer el nick: escríbelo igual que en el juego.', false);
+            }
+        };
+
+        /* Al salir del campo, y también mientras escribe: en el celular casi
+           nadie sale del campo a propósito. */
+        let espera = null;
+        campoUid.addEventListener('input', () => {
+            clearTimeout(espera);
+            espera = setTimeout(buscar, 700);
+        });
+        campoUid.addEventListener('change', buscar);
+        campoUid.addEventListener('blur', buscar);
+    }
+
     async function abrirInscripcion(torneoId) {
         const yo = S.yo();
         if (!yo) {
@@ -673,6 +723,7 @@
                 <div class="field">
                     <label>ID de Free Fire</label>
                     <input type="text" data-uid="${i}" value="${i === 0 ? esc(yo.ffUid) : ''}" placeholder="Ej: 2148563097" inputmode="numeric" ${i === 0 ? 'readonly' : ''}>
+                    ${i === 0 ? '' : `<div class="hint" data-aviso="${i}">Escribe el ID y te traemos el nick del juego.</div>`}
                 </div>
             </div>`);
         }
@@ -695,6 +746,11 @@
             <button class="btn btn-fire btn-block" id="confirmarInsc">Pagar ${money(total)} con mi saldo</button>
             <a href="#/billetera" class="btn btn-ghost btn-block mt" data-cerrar>Recargar saldo</a>
         `);
+
+        /* El nick del compañero es el dato que más se equivoca la gente, y el
+           que descalifica al equipo sin devolución. Así que no se escribe:
+           se trae del juego con el ID. */
+        for (let i = 1; i < req; i++) detectarNick(m, i, yo.region);
 
         $('#confirmarInsc', m).onclick = async function () {
             const btn = this;
