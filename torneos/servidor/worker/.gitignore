@@ -1,0 +1,6 @@
+# La base de datos local de pruebas nunca va al repositorio.
+*.db
+*.db-wal
+*.db-shm
+node_modules/
+.wrangler/

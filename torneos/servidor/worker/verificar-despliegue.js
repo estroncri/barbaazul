@@ -20,6 +20,7 @@ if (!base) {
 }
 
 const A = base.endsWith('/api') ? base : base + '/api';
+const EN_LOCAL = /localhost|127\.0\.0\.1/.test(base);
 let fallos = 0;
 
 const marca = (ok, texto, detalle) => {
@@ -57,8 +58,12 @@ async function pedir(ruta, op = {}) {
     /* 2. ¿La pasarela está configurada? */
     const p = await pedir('/pasarela');
     const wompiOk = p.datos && p.datos.wompi;
-    marca(wompiOk, 'Wompi configurado',
-        wompiOk ? p.datos.llavePublica : 'faltan WOMPI_LLAVE_PUBLICA o WOMPI_INTEGRIDAD');
+    if (EN_LOCAL && !wompiOk) {
+        console.log('  · Wompi sin configurar — normal al probar en tu computador');
+    } else {
+        marca(wompiOk, 'Wompi configurado',
+            wompiOk ? p.datos.llavePublica : 'faltan WOMPI_LLAVE_PUBLICA o WOMPI_INTEGRIDAD');
+    }
     if (wompiOk) {
         const esPruebas = String(p.datos.llavePublica).startsWith('pub_test');
         console.log(`     Modo: ${esPruebas ? 'PRUEBAS (bien para empezar)' : 'PRODUCCIÓN — se cobra dinero real'}`);
@@ -81,9 +86,10 @@ async function pedir(ruta, op = {}) {
     marca(t.estado === 401 || t.estado === 403, 'Solo el organizador puede crear torneos');
 
     /* 6. CORS: tu página debe estar autorizada */
-    const cors = await pedir('/salud', { cabeceras: { Origin: 'https://estroncri.github.io' } });
+    const origenEsperado = EN_LOCAL ? 'http://localhost:8099' : 'https://estroncri.github.io';
+    const cors = await pedir('/salud', { cabeceras: { Origin: origenEsperado } });
     const permitido = cors.cabeceras.get('access-control-allow-origin');
-    marca(permitido === 'https://estroncri.github.io', 'Tu página está autorizada',
+    marca(permitido === origenEsperado, `Tu página está autorizada (${origenEsperado})`,
         permitido || 'sin cabecera CORS');
 
     /* 7. Los torneos se leen sin necesidad de entrar */
@@ -91,9 +97,13 @@ async function pedir(ruta, op = {}) {
     marca(lista.estado === 200 && Array.isArray(lista.datos),
         'La lista de torneos es pública', `${(lista.datos || []).length} torneo(s)`);
 
-    console.log(fallos === 0
-        ? '\n  Todo en orden. Falta una sola cosa que solo se comprueba pagando:\n'
-          + '  haz una recarga de prueba en Wompi y mira que el saldo aparezca solo.\n'
-        : `\n  ${fallos} cosa(s) por revisar antes de cobrarle a nadie.\n`);
+    if (fallos === 0 && EN_LOCAL) {
+        console.log('\n  Todo en orden para trabajar en local.\n');
+    } else if (fallos === 0) {
+        console.log('\n  Todo en orden. Falta una sola cosa que solo se comprueba pagando:\n'
+            + '  haz una recarga de prueba en Wompi y mira que el saldo aparezca solo.\n');
+    } else {
+        console.log(`\n  ${fallos} cosa(s) por revisar antes de cobrarle a nadie.\n`);
+    }
     process.exit(fallos === 0 ? 0 : 1);
 })();

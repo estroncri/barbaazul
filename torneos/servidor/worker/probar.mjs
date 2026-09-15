@@ -17,7 +17,9 @@ import worker from './src/index.js';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
 const db = new DatabaseSync(':memory:');
-db.exec(readFileSync(join(aqui, 'migrations/0001_inicial.sql'), 'utf8'));
+for (const archivo of ['0001_inicial.sql', '0002_cuentas.sql']) {
+    db.exec(readFileSync(join(aqui, 'migrations', archivo), 'utf8'));
+}
 
 /* D1 de mentira: mismas funciones que usa el Worker.
    batch() se ejecuta dentro de una transacción, igual que el D1 real. */
@@ -149,6 +151,13 @@ await llamar('POST', `/api/torneos/${t.id}/resultados`,
     { filas: [{ inscripcionId: comoInscrito.participantes[0].id, puesto: 1, kills: 2, puntos: 9 }] }, tokOrg);
 comprobar((await saldo(tokJ)) === 15000 + 16000, 'Corregir descuenta el premio anterior', await saldo(tokJ));
 
+/* Retiro: primero hay que verificar la cuenta (regla nueva) */
+const pideVer = await llamar('POST', '/api/verificaciones', null, tokJ);
+const colaVer = await llamar('GET', '/api/admin/verificaciones', null, tokOrg);
+await llamar('POST', `/api/admin/verificaciones/${colaVer.datos[0].id}`, { aprobar: true }, tokOrg);
+comprobar((await llamar('GET', '/api/yo', null, tokJ)).datos.verificado === true,
+    'La cuenta queda verificada antes de poder retirar', pideVer.datos.codigo);
+
 /* Retiro: no más de lo que hay */
 const retiroGrande = await llamar('POST', '/api/retiros', { monto: 999999, metodo: 'Nequi', cuenta: '3001112233' }, tokJ);
 comprobar(retiroGrande.estado === 400, 'No se puede retirar más de lo que hay', retiroGrande.datos.error);
@@ -173,6 +182,87 @@ await llamar('POST', '/api/wompi/eventos', await firmarEvento({ id: 'z', status:
 const tarde = await llamar('POST', `/api/torneos/${t3.id}/inscripciones`, { equipo: { nombre: 'Tarde', miembros: [{ nick: 'b', uid: '2' }] } }, pobre.datos.token);
 comprobar(tarde.estado === 400 && (await saldo(pobre.datos.token)) === 5000,
     'Con el cupo lleno no entra nadie más y no se cobra', tarde.datos.error);
+
+/* ============================================================
+   Cuentas: intentos, recuperación y verificación
+   ============================================================ */
+console.log('\n── Seguridad de las cuentas ──\n');
+
+/* Freno a la fuerza bruta */
+let ultimo;
+for (let i = 0; i < 6; i++) {
+    ultimo = await llamar('POST', '/api/auth/login', { usuario: '2148563097', pass: 'clave-mala-' + i });
+}
+comprobar(ultimo.estado === 429, 'Tras 5 intentos fallidos se bloquea', ultimo.datos.error);
+
+const buenaPeroBloqueada = await llamar('POST', '/api/auth/login', { usuario: '2148563097', pass: 'clave123' });
+comprobar(buenaPeroBloqueada.estado === 429, 'Ni con la contraseña correcta entra mientras está bloqueado');
+
+// Se levanta el bloqueo como si hubieran pasado los 15 minutos
+db.prepare("UPDATE intentos SET bloqueado_hasta = NULL, fallos = 0").run();
+const entra = await llamar('POST', '/api/auth/login', { usuario: '2148563097', pass: 'clave123' });
+comprobar(entra.estado === 200, 'Pasado el bloqueo, entra normal');
+const tokJ2 = entra.datos.token;
+
+/* Se le quita la verificación para probar la barrera del retiro */
+db.prepare("UPDATE usuarios SET verificado = 0 WHERE ff_uid = '2148563097'").run();
+db.prepare("DELETE FROM verificaciones").run();
+
+/* Retirar exige cuenta verificada */
+const retiroSinVerificar = await llamar('POST', '/api/retiros', { monto: 10000, metodo: 'Nequi', cuenta: '3001112233' }, tokJ2);
+comprobar(retiroSinVerificar.estado === 400 && /verificar/i.test(retiroSinVerificar.datos.error),
+    'Sin cuenta verificada no se puede retirar', retiroSinVerificar.datos.error);
+
+/* Pedir verificación y que el organizador la apruebe */
+const pide = await llamar('POST', '/api/verificaciones', null, tokJ2);
+comprobar(pide.estado === 200 && /^FF-\d{4}$/.test(pide.datos.codigo), 'Se pide verificación y da un código', pide.datos.codigo);
+
+const repetida = await llamar('POST', '/api/verificaciones', null, tokJ2);
+comprobar(repetida.estado === 400, 'No se puede pedir dos veces seguidas');
+
+const cola = await llamar('GET', '/api/admin/verificaciones', null, tokOrg);
+comprobar(cola.datos.length === 1 && cola.datos[0].codigo === pide.datos.codigo,
+    'Al organizador le llega la solicitud con el código');
+
+const colaAjena = await llamar('GET', '/api/admin/verificaciones', null, tokJ2);
+comprobar(colaAjena.estado === 403, 'Un jugador no puede ver la cola de verificaciones');
+
+await llamar('POST', `/api/admin/verificaciones/${cola.datos[0].id}`, { aprobar: true }, tokOrg);
+const yoVerificado = await llamar('GET', '/api/yo', null, tokJ2);
+comprobar(yoVerificado.datos.verificado === true, 'Tras aprobar, la cuenta queda verificada');
+
+const retiroAhora = await llamar('POST', '/api/retiros', { monto: 10000, metodo: 'Nequi', cuenta: '3001112233' }, tokJ2);
+comprobar(retiroAhora.estado === 200, 'Ya verificado, el retiro se puede pedir');
+
+/* Recuperar contraseña */
+db.prepare("DELETE FROM intentos").run();
+const rec1 = await llamar('POST', '/api/auth/recuperar', { usuario: '2148563097' });
+const recInventada = await llamar('POST', '/api/auth/recuperar', { usuario: '9999999999' });
+comprobar(rec1.datos.mensaje === recInventada.datos.mensaje,
+    'Responde igual exista o no la cuenta (no delata quién está registrado)');
+
+const colaRec = await llamar('GET', '/api/admin/recuperaciones', null, tokOrg);
+comprobar(colaRec.datos.length === 1 && colaRec.datos[0].ffUid === '2148563097',
+    'Al organizador le llega la solicitud con el WhatsApp del jugador', colaRec.datos[0]?.whatsapp);
+
+const temporal = await llamar('POST', `/api/admin/recuperaciones/${colaRec.datos[0].id}`, { aprobar: true }, tokOrg);
+comprobar(!!temporal.datos.temporal, 'Genera una contraseña temporal para pasarle por WhatsApp', temporal.datos.temporal);
+
+const viejaYaNo = await llamar('POST', '/api/auth/login', { usuario: '2148563097', pass: 'clave123' });
+comprobar(viejaYaNo.estado === 401, 'La contraseña vieja deja de servir');
+
+const conTemporal = await llamar('POST', '/api/auth/login', { usuario: '2148563097', pass: temporal.datos.temporal });
+comprobar(conTemporal.estado === 200 && conTemporal.datos.debeCambiar === true,
+    'Entra con la temporal y se le exige cambiarla');
+
+const cambio = await llamar('POST', '/api/auth/cambiar-pass', { nueva: 'mi-clave-nueva' }, conTemporal.datos.token);
+comprobar(cambio.estado === 200, 'Puede poner su contraseña nueva sin saber la anterior');
+
+const conNueva = await llamar('POST', '/api/auth/login', { usuario: '2148563097', pass: 'mi-clave-nueva' });
+comprobar(conNueva.estado === 200 && !conNueva.datos.debeCambiar, 'Entra con la nueva y ya no se le exige nada');
+
+const cambioSinSaberla = await llamar('POST', '/api/auth/cambiar-pass', { nueva: 'otra-mas', actual: 'me-la-invento' }, conNueva.datos.token);
+comprobar(cambioSinSaberla.estado === 400, 'Sin la temporal, cambiar la clave exige saber la anterior');
 
 console.log(fallos === 0 ? '\n  Todo correcto.\n' : `\n  ${fallos} prueba(s) fallaron.\n`);
 process.exit(fallos ? 1 : 0);

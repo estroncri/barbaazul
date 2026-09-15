@@ -699,6 +699,8 @@
                     <input type="password" id="loginPass" placeholder="••••••" autocomplete="current-password">
                 </div>
                 <button class="btn btn-fire btn-block" id="btnLogin">Entrar</button>
+                ${S.recuperarPass ? `<button class="btn btn-ghost btn-block btn-sm mt" id="btnOlvide">
+                    Olvidé mi contraseña</button>` : ''}
                 <div class="divider"></div>
                 <a href="#/registro" class="btn btn-ghost btn-block">
                     <i class="bi bi-person-plus-fill"></i> Conectar mi cuenta de Free Fire
@@ -721,12 +723,49 @@
             this.disabled = true;
             try {
                 const u = await S.login($('#loginUser').value.trim(), $('#loginPass').value);
+                if (u.debeCambiar) { pedirNuevaPass(); return; }
                 toast('¡Bienvenido, ' + u.nick + '!', 'ok');
                 location.hash = '#/';
                 render();
             } catch (e) { err(e.message); this.disabled = false; }
         };
         $('#loginPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#btnLogin').click(); });
+
+        const bo = $('#btnOlvide');
+        if (bo) bo.onclick = () => {
+            const m = modal('Recuperar mi contraseña', `
+                <p class="muted mb" style="line-height:1.6">
+                    Escribe tu ID de Free Fire o tu WhatsApp. El organizador te va a escribir por
+                    WhatsApp con una contraseña temporal, y al entrar te pedimos que pongas una nueva.
+                </p>
+                <div id="recuMsg"></div>
+                <div class="field">
+                    <label>ID de Free Fire o WhatsApp</label>
+                    <input type="text" id="recuUsuario" placeholder="2148563097" value="${esc($('#loginUser').value.trim())}">
+                </div>
+                <button class="btn btn-fire btn-block" id="recuOk">Pedir ayuda</button>
+            `);
+            $('#recuOk', m).onclick = async function () {
+                this.disabled = true; this.textContent = 'Enviando...';
+                try {
+                    const r = await S.recuperarPass($('#recuUsuario', m).value.trim());
+                    // Se reemplaza el formulario por el aviso y una salida clara:
+                    // dejar el modal abierto sin botón deja al jugador atascado.
+                    $('.modal', m).innerHTML = `
+                        <div class="modal-head"><h3>Solicitud enviada</h3></div>
+                        <div class="msg msg-ok">${esc(r.mensaje || 'Listo, el organizador te va a contactar.')}</div>
+                        <p class="muted mb" style="line-height:1.6">
+                            Te va a llegar una contraseña temporal por WhatsApp. Cuando entres con ella,
+                            la plataforma te pide que pongas una nueva.
+                        </p>
+                        <button class="btn btn-fire btn-block" data-cerrar>Entendido</button>`;
+                    $('[data-cerrar]', m).onclick = cerrarModal;
+                } catch (e) {
+                    $('#recuMsg', m).innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>`;
+                    this.disabled = false; this.textContent = 'Pedir ayuda';
+                }
+            };
+        };
 
         const bd = $('#btnDemo');
         if (!bd) return;
@@ -739,6 +778,45 @@
             location.hash = '#/admin'; render();
         };
     };
+
+    /* Entró con la contraseña temporal: no sigue hasta poner una suya.
+       El modal no se puede cerrar a propósito. */
+    function pedirNuevaPass() {
+        const m = modal('Pon tu contraseña nueva', `
+            <div class="msg msg-info">
+                Entraste con la contraseña temporal que te dio el organizador.
+                Elige una tuya para seguir.
+            </div>
+            <div id="npMsg"></div>
+            <div class="field">
+                <label>Contraseña nueva</label>
+                <input type="password" id="npNueva" placeholder="Mínimo 6 caracteres">
+            </div>
+            <div class="field">
+                <label>Repítela</label>
+                <input type="password" id="npNueva2" placeholder="••••••">
+            </div>
+            <button class="btn btn-fire btn-block" id="npOk">Guardar y entrar</button>
+        `);
+        $('.x-btn', m).remove();
+        m.onclick = null;
+
+        $('#npOk', m).onclick = async function () {
+            const a = $('#npNueva', m).value, b = $('#npNueva2', m).value;
+            if (a !== b) { $('#npMsg', m).innerHTML = '<div class="msg msg-err">No coinciden.</div>'; return; }
+            this.disabled = true; this.textContent = 'Guardando...';
+            try {
+                await S.cambiarPass(a);
+                cerrarModal();
+                toast('Contraseña actualizada', 'ok');
+                location.hash = '#/';
+                render();
+            } catch (e) {
+                $('#npMsg', m).innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>`;
+                this.disabled = false; this.textContent = 'Guardar y entrar';
+            }
+        };
+    }
 
     /* ---------- REGISTRO (conectar cuenta de Free Fire) ---------- */
     let regPerfil = null;
@@ -1119,7 +1197,9 @@
                         <h2 class="perfil-nick">${esc(yo.nick)}</h2>
                         <div class="muted">ID ${esc(yo.ffUid)}${yo.nivel ? ' · Nivel ' + yo.nivel : ''} · ${esc(window.PerfilFF.nombreRegion(yo.region))}</div>
                         <div class="flex mt" style="gap:6px">
-                            ${yo.verificado ? `<span class="pill pill-abierto"><i class="bi bi-patch-check-fill"></i> Cuenta verificada</span>` : `<span class="pill pill-lleno">Sin verificar</span>`}
+                            ${yo.verificado
+                                ? `<span class="pill pill-abierto"><i class="bi bi-patch-check-fill"></i> Cuenta verificada</span>`
+                                : `<span class="pill pill-lleno">Sin verificar</span>`}
                             ${yo.rol === 'admin' ? `<span class="pill pill-escuadra">Admin</span>` : ''}
                         </div>
                     </div>
@@ -1167,6 +1247,28 @@
                 </div>
             </div>
 
+            ${!yo.verificado && S.pedirVerificacion ? `
+            <div class="card mt" style="box-shadow:inset 0 0 0 1px rgba(255,209,102,.4)">
+                <h3 class="mb">Verifica tu cuenta</h3>
+                <p class="muted mb" style="line-height:1.6">
+                    Para <b>jugar</b> no hace falta. Para <b>sacar tu dinero</b>, sí: así nadie puede
+                    cobrar con el ID de otro.
+                </p>
+                <div class="msg msg-info">
+                    <b>Es un minuto:</b> entra a Free Fire, pon este código en tu biografía y vuelve aquí.
+                    <div class="sala-val mt" style="text-align:center" id="codigoVer">—</div>
+                </div>
+                <div id="verMsg"></div>
+                <button class="btn btn-fire btn-block" id="btnPedirVer">Ya lo puse, verifíquenme</button>
+            </div>` : ''}
+
+            <div class="card mt">
+                <h3 class="mb">Seguridad</h3>
+                <button class="btn btn-ghost btn-block" id="btnCambiarPass">
+                    <i class="bi bi-shield-lock-fill"></i> Cambiar mi contraseña
+                </button>
+            </div>
+
             <div class="card mt">
                 <h3 class="mb">Datos de contacto</h3>
                 <div class="t-row" style="padding:8px 0;border-bottom:1px solid var(--line)"><span>WhatsApp</span><b>+${esc(yo.whatsapp)}</b></div>
@@ -1175,7 +1277,66 @@
         </div>`;
     };
 
-    V.perfil.despues = function () {
+    V.perfil.despues = async function () {
+        /* Verificación de la cuenta */
+        const bpv = $('#btnPedirVer');
+        if (bpv && S.miVerificacion) {
+            try {
+                const v = await S.miVerificacion();
+                $('#codigoVer').textContent = v.codigo;
+                if (v.solicitud && v.solicitud.estado === 'pendiente') {
+                    $('#verMsg').innerHTML = `<div class="msg msg-warn">
+                        Tu solicitud está en revisión. El organizador la revisa y te avisa por WhatsApp.</div>`;
+                    bpv.disabled = true;
+                    bpv.textContent = 'En revisión';
+                } else if (v.solicitud && v.solicitud.estado === 'rechazada') {
+                    $('#verMsg').innerHTML = `<div class="msg msg-err">
+                        La última solicitud fue rechazada${v.solicitud.nota ? ': ' + esc(v.solicitud.nota) : ''}.
+                        Revisa que el código esté bien puesto y vuelve a pedirla.</div>`;
+                }
+            } catch (e) { /* si falla, el botón igual sirve */ }
+
+            bpv.onclick = async function () {
+                this.disabled = true; this.textContent = 'Enviando...';
+                try {
+                    await S.pedirVerificacion();
+                    toast('Solicitud enviada. El organizador la revisa y te avisa.', 'ok');
+                    render();
+                } catch (e) {
+                    toast(e.message, 'err');
+                    this.disabled = false; this.textContent = 'Ya lo puse, verifíquenme';
+                }
+            };
+        }
+
+        /* Cambiar contraseña */
+        const bcp = $('#btnCambiarPass');
+        if (bcp) bcp.onclick = () => {
+            if (!S.cambiarPass) return toast('Disponible cuando la plataforma esté conectada al servidor.', 'err');
+            const m = modal('Cambiar mi contraseña', `
+                <div id="cpMsg"></div>
+                <div class="field"><label>Contraseña actual</label><input type="password" id="cpActual"></div>
+                <div class="field"><label>Nueva</label><input type="password" id="cpNueva" placeholder="Mínimo 6 caracteres"></div>
+                <div class="field"><label>Repite la nueva</label><input type="password" id="cpNueva2"></div>
+                <div class="hint mb">Al cambiarla se cierran las demás sesiones abiertas con tu cuenta.</div>
+                <button class="btn btn-fire btn-block" id="cpOk">Cambiar</button>
+            `);
+            $('#cpOk', m).onclick = async function () {
+                if ($('#cpNueva', m).value !== $('#cpNueva2', m).value) {
+                    $('#cpMsg', m).innerHTML = '<div class="msg msg-err">Las contraseñas nuevas no coinciden.</div>';
+                    return;
+                }
+                this.disabled = true; this.textContent = 'Cambiando...';
+                try {
+                    await S.cambiarPass($('#cpNueva', m).value, $('#cpActual', m).value);
+                    cerrarModal(); toast('Contraseña cambiada', 'ok');
+                } catch (e) {
+                    $('#cpMsg', m).innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>`;
+                    this.disabled = false; this.textContent = 'Cambiar';
+                }
+            };
+        };
+
         const br = $('#btnRefrescarFF');
         if (br) br.onclick = async function () {
             this.disabled = true; this.innerHTML = '<i class="bi bi-hourglass-split"></i> Consultando...';
@@ -1285,13 +1446,20 @@
         const retiros = pendientes.filter((p) => p.tipo === 'retiro');
         const recargas = pendientes.filter((p) => p.tipo === 'recarga');
 
+        const recuperaciones = S.recuperacionesPendientes ? await S.recuperacionesPendientes() : [];
+        const verificaciones = S.verificacionesPendientes ? await S.verificacionesPendientes() : [];
+        const cuentas = recuperaciones.length + verificaciones.length;
+
         const tabs = [['torneos', 'Torneos'], ['crear', 'Crear torneo'],
-            ['retiros', `Pagos${pendientes.length ? ' (' + pendientes.length + ')' : ''}`], ['whatsapp', 'WhatsApp']];
+            ['retiros', `Pagos${pendientes.length ? ' (' + pendientes.length + ')' : ''}`],
+            ['cuentas', `Cuentas${cuentas ? ' (' + cuentas + ')' : ''}`],
+            ['whatsapp', 'WhatsApp']];
 
         let cuerpo = '';
         if (adminTab === 'torneos') cuerpo = adminTorneos(torneos);
         if (adminTab === 'crear') cuerpo = adminCrear();
         if (adminTab === 'retiros') cuerpo = adminRecargas(recargas) + adminRetiros(retiros);
+        if (adminTab === 'cuentas') cuerpo = adminCuentas(verificaciones, recuperaciones);
         if (adminTab === 'whatsapp') cuerpo = adminWhatsapp(torneos);
 
         return `
@@ -1517,6 +1685,62 @@
                 </tr>`).join('')}</tbody>
             </table></div>
         </div>`;
+    }
+
+    function adminCuentas(verificaciones, recuperaciones) {
+        const cfg = S.config();
+        if (!verificaciones.length && !recuperaciones.length) {
+            return `<div class="empty"><i class="bi bi-check2-circle"></i>No hay nada pendiente por revisar.</div>`;
+        }
+
+        const bloqueVerificaciones = !verificaciones.length ? '' : `
+        <div class="card mb">
+            <h3 class="mb">Verificaciones por revisar</h3>
+            <p class="muted mb" style="font-size:.82rem">
+                El jugador dice que puso el código en su biografía del juego. Compruébalo antes de
+                aprobar: sin verificar no puede retirar dinero, así que esta es la barrera que
+                evita que alguien cobre con el ID de otro.
+            </p>
+            <div class="tabla-wrap"><table>
+                <thead><tr><th>Jugador</th><th>Código que debe tener</th><th>Pedida</th><th>Acción</th></tr></thead>
+                <tbody>${verificaciones.map((v) => `<tr>
+                    <td><b>${esc(v.nick)}</b><div class="muted">ID ${esc(v.ffUid)}${v.nivel ? ' · Nivel ' + v.nivel : ''}</div></td>
+                    <td><span class="sala-val">${esc(v.codigo)}</span></td>
+                    <td class="nowrap">${fechaCorta(v.creado)}</td>
+                    <td><div class="flex" style="gap:6px">
+                        <button class="btn btn-ok btn-sm" data-ver-ok="${v.id}">Verificar</button>
+                        <button class="btn btn-danger btn-sm" data-ver-no="${v.id}">Rechazar</button>
+                        <a class="btn btn-wa btn-sm" target="_blank" rel="noopener"
+                           href="${esc(waLink(`Hola ${v.nick}, mándame la captura de tu perfil de Free Fire con el código ${v.codigo} en la biografía, para verificar tu cuenta.`, v.whatsapp))}"
+                           title="Pedirle la captura"><i class="bi bi-whatsapp"></i></a>
+                    </div></td>
+                </tr>`).join('')}</tbody>
+            </table></div>
+        </div>`;
+
+        const bloqueRecuperaciones = !recuperaciones.length ? '' : `
+        <div class="card">
+            <h3 class="mb">Contraseñas olvidadas</h3>
+            <p class="muted mb" style="font-size:.82rem">
+                Al darle a "Generar clave" se crea una contraseña temporal y se cierran las sesiones
+                de esa cuenta. Pásasela por WhatsApp: cuando entre, la plataforma le exige cambiarla.
+                <b>Asegúrate de que es quien dice ser</b> antes de generarla.
+            </p>
+            <div class="tabla-wrap"><table>
+                <thead><tr><th>Jugador</th><th>WhatsApp</th><th>Pedida</th><th>Acción</th></tr></thead>
+                <tbody>${recuperaciones.map((r) => `<tr>
+                    <td><b>${esc(r.nick)}</b><div class="muted">ID ${esc(r.ffUid)}</div></td>
+                    <td class="mono">+${esc(r.whatsapp)}</td>
+                    <td class="nowrap">${fechaCorta(r.creado)}</td>
+                    <td><div class="flex" style="gap:6px">
+                        <button class="btn btn-fire btn-sm" data-recu-ok="${r.id}" data-nick="${esc(r.nick)}" data-wa="${esc(r.whatsapp)}">Generar clave</button>
+                        <button class="btn btn-danger btn-sm" data-recu-no="${r.id}">Descartar</button>
+                    </div></td>
+                </tr>`).join('')}</tbody>
+            </table></div>
+        </div>`;
+
+        return bloqueVerificaciones + bloqueRecuperaciones;
     }
 
     function adminWhatsapp(torneos) {
@@ -1778,6 +2002,55 @@
                     await (S.resolverPendiente || S.resolverRetiro)(b.dataset.rechazar, false, nota);
                     toast('Rechazado', 'ok'); render();
                 }
+                catch (e) { toast(e.message, 'err'); }
+            };
+        });
+
+        /* --- Verificaciones --- */
+        $$('[data-ver-ok]').forEach((b) => {
+            b.onclick = async () => {
+                try { await S.resolverVerificacion(b.dataset.verOk, true); toast('Cuenta verificada', 'ok'); render(); }
+                catch (e) { toast(e.message, 'err'); }
+            };
+        });
+        $$('[data-ver-no]').forEach((b) => {
+            b.onclick = async () => {
+                const nota = prompt('¿Por qué se rechaza? (lo verá el jugador)');
+                if (nota === null) return;
+                try { await S.resolverVerificacion(b.dataset.verNo, false, nota); toast('Solicitud rechazada', 'ok'); render(); }
+                catch (e) { toast(e.message, 'err'); }
+            };
+        });
+
+        /* --- Contraseñas olvidadas --- */
+        $$('[data-recu-ok]').forEach((b) => {
+            b.onclick = async () => {
+                const nick = b.dataset.nick, wa = b.dataset.wa;
+                if (!confirm(`¿Seguro que ${nick} es quien dice ser?\n\nSe le va a generar una contraseña temporal y se cerrarán sus sesiones.`)) return;
+                try {
+                    const r = await S.resolverRecuperacion(b.dataset.recuOk, true);
+                    const texto = `Hola ${nick}, tu contraseña temporal de Torneos FF es: ${r.temporal}\n\n`
+                        + `Entra con ella y la plataforma te va a pedir que pongas una nueva. No se la pases a nadie.`;
+                    modal('Contraseña temporal generada', `
+                        <div class="msg msg-warn">
+                            Esta clave se muestra <b>una sola vez</b>. Mándasela ya por WhatsApp.
+                        </div>
+                        <div class="sala-val center mb" style="font-size:1.6rem">${esc(r.temporal)}</div>
+                        <a class="btn btn-wa btn-block" target="_blank" rel="noopener" href="${esc(waLink(texto, wa))}">
+                            <i class="bi bi-whatsapp"></i> Mandársela por WhatsApp
+                        </a>
+                        <button class="btn btn-ghost btn-block mt" data-copiar-clave="${esc(r.temporal)}">
+                            <i class="bi bi-clipboard"></i> Copiar la clave
+                        </button>
+                    `);
+                    const bc = $('[data-copiar-clave]');
+                    if (bc) bc.onclick = () => copiar(bc.dataset.copiarClave, 'Clave copiada');
+                } catch (e) { toast(e.message, 'err'); }
+            };
+        });
+        $$('[data-recu-no]').forEach((b) => {
+            b.onclick = async () => {
+                try { await S.resolverRecuperacion(b.dataset.recuNo, false); toast('Solicitud descartada', 'ok'); render(); }
                 catch (e) { toast(e.message, 'err'); }
             };
         });

@@ -57,19 +57,19 @@ Todo depende de una línea en `js/config.js`:
 | `''` (vacío) | **Modo local.** Cada navegador guarda lo suyo. Sirve para ver el diseño |
 | `'https://…'` | **Modo compartido.** Las inscripciones, el saldo y los resultados viven en el servidor: todos ven lo mismo |
 
-Hay dos versiones del servidor, con las mismas reglas:
+El servidor vive en [`servidor/worker/`](servidor/worker/DESPLIEGUE.md): Cloudflare
+Workers + D1. Gratis, sin tarjeta, y los datos no se borran nunca.
 
-| | Para qué |
-|---|---|
-| [`servidor/worker/`](servidor/worker/DESPLIEGUE.md) | **Producción.** Cloudflare Workers + D1: gratis, sin tarjeta, los datos no se borran nunca |
-| [`servidor/api/`](servidor/api/README.md) | Para trabajar en tu computador. Node 22, sin dependencias |
-
-Para probar en local:
+Para probarlo en tu computador, el mismo código corre sobre SQLite:
 
 ```bash
-ADMIN_FF_UID=tu-id ADMIN_PASS=tu-clave node torneos/servidor/api/servidor.js
+ADMIN_FF_UID=tu-id node torneos/servidor/worker/servidor-local.mjs
 # y en js/config.js →  api: 'http://localhost:8790/api'
 ```
+
+Antes hubo una segunda versión en Node puro. Se retiró: mantener dos
+implementaciones de las reglas del dinero es la forma más segura de que una de
+las dos acabe con un error que la otra no tiene.
 
 En modo compartido la pantalla se actualiza sola: si entra otro inscrito o el
 organizador publica la sala, aparece sin recargar.

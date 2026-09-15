@@ -94,8 +94,8 @@
         login: async (usuario, pass) => {
             const r = await pedir('/auth/login', { metodo: 'POST', cuerpo: { usuario, pass } });
             guardarToken(r.token);
-            yoCache = r.usuario;
-            return r.usuario;
+            yoCache = Object.assign({}, r.usuario, { debeCambiar: !!r.debeCambiar });
+            return yoCache;
         },
 
         logout: async () => {
@@ -105,6 +105,31 @@
         },
 
         yo: () => yoCache,
+
+        /* ---- Contraseñas y verificación ---- */
+        recuperarPass: (usuario) => pedir('/auth/recuperar', { metodo: 'POST', cuerpo: { usuario } }),
+
+        cambiarPass: async (nueva, actual) => {
+            const r = await pedir('/auth/cambiar-pass', { metodo: 'POST', cuerpo: { nueva, actual } });
+            await refrescarYo();
+            return r;
+        },
+
+        pedirVerificacion: async () => {
+            const r = await pedir('/verificaciones', { metodo: 'POST' });
+            await refrescarYo();
+            return r;
+        },
+
+        miVerificacion: () => pedir('/mi-verificacion'),
+
+        recuperacionesPendientes: () => pedir('/admin/recuperaciones'),
+        resolverRecuperacion: (id, aprobar) =>
+            pedir('/admin/recuperaciones/' + encodeURIComponent(id), { metodo: 'POST', cuerpo: { aprobar } }),
+
+        verificacionesPendientes: () => pedir('/admin/verificaciones'),
+        resolverVerificacion: (id, aprobar, nota) =>
+            pedir('/admin/verificaciones/' + encodeURIComponent(id), { metodo: 'POST', cuerpo: { aprobar, nota } }),
         esAdmin: () => !!yoCache && yoCache.rol === 'admin',
         sesionLista: refrescarYo,
 

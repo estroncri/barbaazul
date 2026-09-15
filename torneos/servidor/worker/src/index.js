@@ -80,6 +80,53 @@ const insertarMovimiento = (env, id, usuarioId, tipo, monto, e = {}) =>
         .bind(id, usuarioId, tipo, Math.round(monto), e.estado || 'completada',
               e.metodo || '', e.referencia || '', e.nota || '', ahora());
 
+/* ============================================================
+   Freno a la fuerza bruta
+   ------------------------------------------------------------
+   Cinco intentos fallidos y la cuenta queda bloqueada 15 minutos.
+   Se cuenta por cuenta Y por dirección de internet: lo primero
+   protege al jugador, lo segundo evita que alguien pruebe miles
+   de cuentas distintas desde el mismo sitio.
+   ============================================================ */
+const MAX_FALLOS = 5;
+const BLOQUEO_MIN = 15;
+const VENTANA_MIN = 15;
+
+async function comprobarBloqueo(env, claves) {
+    for (const clave of claves) {
+        const r = await env.DB.prepare('SELECT * FROM intentos WHERE clave = ?').bind(clave).first();
+        if (r?.bloqueado_hasta && new Date(r.bloqueado_hasta) > new Date()) {
+            const minutos = Math.max(1, Math.ceil((new Date(r.bloqueado_hasta) - Date.now()) / 60000));
+            throw new ErrorAPI(429, `Demasiados intentos fallidos. Espera ${minutos} minuto(s) y vuelve a probar.`);
+        }
+    }
+}
+
+async function anotarFallo(env, claves) {
+    const ahoraMs = Date.now();
+    for (const clave of claves) {
+        const r = await env.DB.prepare('SELECT * FROM intentos WHERE clave = ?').bind(clave).first();
+        // Si el último fallo fue hace rato, se empieza a contar de nuevo
+        const dentroDeVentana = r && (ahoraMs - new Date(r.desde).getTime()) < VENTANA_MIN * 60000;
+        const fallos = (dentroDeVentana ? r.fallos : 0) + 1;
+        const bloqueo = fallos >= MAX_FALLOS ? new Date(ahoraMs + BLOQUEO_MIN * 60000).toISOString() : null;
+
+        await env.DB.prepare(`INSERT INTO intentos (clave, fallos, desde, bloqueado_hasta) VALUES (?,?,?,?)
+                              ON CONFLICT(clave) DO UPDATE SET fallos = excluded.fallos,
+                                  desde = excluded.desde, bloqueado_hasta = excluded.bloqueado_hasta`)
+            .bind(clave, fallos, dentroDeVentana ? r.desde : new Date(ahoraMs).toISOString(), bloqueo).run();
+    }
+}
+
+const limpiarIntentos = (env, claves) =>
+    env.DB.batch(claves.map((c) => env.DB.prepare('DELETE FROM intentos WHERE clave = ?').bind(c)));
+
+/* El código que el jugador debe poner en su biografía del juego */
+function codigoVerificacion(ffUid) {
+    const suma = String(ffUid).split('').reduce((a, c) => a + Number(c), 0);
+    return 'FF-' + (1000 + (suma * 37) % 8999);
+}
+
 /* ===== Rutas ===== */
 const rutas = [];
 const ruta = (metodo, patron, mano) => rutas.push({ metodo, patron, mano });
@@ -109,11 +156,98 @@ ruta('POST', /^\/api\/auth\/registro$/, async (c) => {
 
 ruta('POST', /^\/api\/auth\/login$/, async (c) => {
     const q = String(c.cuerpo.usuario || '').trim().toLowerCase();
+    const claves = ['login:' + q, 'ip:' + c.ip];
+    await comprobarBloqueo(c.env, claves);
+
     const u = await c.env.DB.prepare('SELECT * FROM usuarios WHERE ff_uid = ? OR lower(email) = ?').bind(q, q).first();
     if (!u || !(await verificarPass(String(c.cuerpo.pass || ''), u.pass_hash, u.pass_sal))) {
+        await anotarFallo(c.env, claves);
         throw new ErrorAPI(401, 'ID/correo o contraseña incorrectos.');
     }
-    return { token: await crearSesion(c.env, u.id), usuario: await usuarioPublico(c.env, u) };
+    await limpiarIntentos(c.env, claves);
+
+    return {
+        token: await crearSesion(c.env, u.id),
+        usuario: await usuarioPublico(c.env, u),
+        debeCambiar: !!u.debe_cambiar
+    };
+});
+
+/* ---------- Cambiar la contraseña ---------- */
+ruta('POST', /^\/api\/auth\/cambiar-pass$/, async (c) => {
+    const yo = await c.exigirUsuario();
+    const nueva = String(c.cuerpo.nueva || '');
+    if (nueva.length < 6) throw malaPeticion('La contraseña nueva debe tener al menos 6 caracteres.');
+
+    /* Con contraseña temporal no se pide la anterior: justamente no la
+       recuerda. En cualquier otro caso sí, para que nadie cambie la clave
+       de una sesión que dejó abierta en un computador ajeno. */
+    if (!yo.debe_cambiar) {
+        const actual = String(c.cuerpo.actual || '');
+        if (!(await verificarPass(actual, yo.pass_hash, yo.pass_sal))) {
+            throw malaPeticion('La contraseña actual no es correcta.');
+        }
+    }
+
+    const { hash, sal } = await hashPass(nueva);
+    await c.env.DB.batch([
+        c.env.DB.prepare('UPDATE usuarios SET pass_hash = ?, pass_sal = ?, debe_cambiar = 0 WHERE id = ?')
+            .bind(hash, sal, yo.id),
+        // Se cierran las demás sesiones: si alguien más había entrado, queda fuera
+        c.env.DB.prepare('DELETE FROM sesiones WHERE usuario_id = ? AND token_hash != ?')
+            .bind(yo.id, await sha256(c.token))
+    ]);
+    return { ok: true };
+});
+
+/* ---------- Recuperar la contraseña ----------
+   Sin correo: el jugador pide ayuda, el organizador le genera una
+   temporal y se la manda por WhatsApp. */
+ruta('POST', /^\/api\/auth\/recuperar$/, async (c) => {
+    const clave = ['recuperar:' + c.ip];
+    await comprobarBloqueo(c.env, clave);
+    await anotarFallo(c.env, clave);      // aquí cada intento cuenta, salga o no
+
+    const q = String(c.cuerpo.usuario || '').trim().toLowerCase();
+    const u = await c.env.DB.prepare('SELECT * FROM usuarios WHERE ff_uid = ? OR lower(email) = ? OR whatsapp = ?')
+        .bind(q, q, q.replace(/\D/g, '')).first();
+
+    /* Respuesta igual exista o no la cuenta: si no, esto sirve para
+       averiguar qué IDs están registrados. */
+    if (u) {
+        const yaHay = await c.env.DB.prepare("SELECT 1 FROM recuperaciones WHERE usuario_id = ? AND estado = 'pendiente'")
+            .bind(u.id).first();
+        if (!yaHay) {
+            await c.env.DB.prepare('INSERT INTO recuperaciones (id, usuario_id, estado, creado) VALUES (?,?,?,?)')
+                .bind(uid('rec'), u.id, 'pendiente', ahora()).run();
+        }
+    }
+    return { ok: true, mensaje: 'Si esa cuenta existe, el organizador la va a contactar por WhatsApp.' };
+});
+
+/* ---------- Verificación de cuenta ---------- */
+ruta('POST', /^\/api\/verificaciones$/, async (c) => {
+    const yo = await c.exigirUsuario();
+    if (yo.verificado) throw malaPeticion('Tu cuenta ya está verificada.');
+
+    const yaHay = await c.env.DB.prepare("SELECT 1 FROM verificaciones WHERE usuario_id = ? AND estado = 'pendiente'")
+        .bind(yo.id).first();
+    if (yaHay) throw malaPeticion('Ya tienes una solicitud en revisión.');
+
+    await c.env.DB.prepare('INSERT INTO verificaciones (id, usuario_id, codigo, estado, creado) VALUES (?,?,?,?,?)')
+        .bind(uid('ver'), yo.id, codigoVerificacion(yo.ff_uid), 'pendiente', ahora()).run();
+    return { ok: true, codigo: codigoVerificacion(yo.ff_uid) };
+});
+
+ruta('GET', /^\/api\/mi-verificacion$/, async (c) => {
+    const yo = await c.exigirUsuario();
+    const v = await c.env.DB.prepare('SELECT * FROM verificaciones WHERE usuario_id = ? ORDER BY creado DESC LIMIT 1')
+        .bind(yo.id).first();
+    return {
+        verificado: !!yo.verificado,
+        codigo: codigoVerificacion(yo.ff_uid),
+        solicitud: v ? { estado: v.estado, creado: v.creado, nota: v.nota } : null
+    };
 });
 
 ruta('POST', /^\/api\/auth\/logout$/, async (c) => {
@@ -436,6 +570,13 @@ ruta('POST', /^\/api\/retiros$/, async (c) => {
     if (monto < min) throw malaPeticion(`El retiro mínimo es de $${min.toLocaleString('es-CO')}.`);
     if (!cuenta) throw malaPeticion('Escribe el número de cuenta o celular que recibe el dinero.');
 
+    /* Para jugar basta con registrarse; para SACAR dinero hay que tener la
+       cuenta verificada. Es la barrera que evita que alguien cobre con una
+       cuenta inventada o con el ID de otro. */
+    if (!yo.verificado) {
+        throw malaPeticion('Para retirar necesitas verificar tu cuenta. Entra a tu perfil y pide la verificación: toma un minuto.');
+    }
+
     const id = uid('tx');
     /* La guarda del saldo va dentro del INSERT, igual que en la inscripción:
        dos retiros pedidos a la vez no pueden sacar más de lo que hay. */
@@ -505,6 +646,75 @@ ruta('POST', /^\/api\/admin\/pendientes\/([\w-]+)$/, async (c, m) => {
     return movimientoPublico(mov);
 });
 
+/* ---------- Panel: recuperaciones y verificaciones ---------- */
+ruta('GET', /^\/api\/admin\/recuperaciones$/, async (c) => {
+    await c.exigirAdmin();
+    const { results } = await c.env.DB.prepare(`
+        SELECT r.*, u.nick, u.ff_uid, u.whatsapp FROM recuperaciones r
+        JOIN usuarios u ON u.id = r.usuario_id
+        WHERE r.estado = 'pendiente' ORDER BY r.creado ASC`).all();
+    return (results || []).map((r) => ({
+        id: r.id, nick: r.nick, ffUid: r.ff_uid, whatsapp: r.whatsapp, creado: r.creado
+    }));
+});
+
+/* Genera una contraseña temporal y la devuelve UNA sola vez, para que el
+   organizador se la pase por WhatsApp. No queda guardada en texto. */
+ruta('POST', /^\/api\/admin\/recuperaciones\/([\w-]+)$/, async (c, m) => {
+    await c.exigirAdmin();
+    const r = await c.env.DB.prepare("SELECT * FROM recuperaciones WHERE id = ? AND estado = 'pendiente'")
+        .bind(m[1]).first();
+    if (!r) throw noEncontrado('Esa solicitud no existe o ya fue resuelta.');
+
+    if (!c.cuerpo.aprobar) {
+        await c.env.DB.prepare("UPDATE recuperaciones SET estado = 'rechazada', resuelto = ? WHERE id = ?")
+            .bind(ahora(), r.id).run();
+        return { ok: true };
+    }
+
+    const temporal = 'FF' + aleatorio(4).toUpperCase();
+    const { hash, sal } = await hashPass(temporal);
+    await c.env.DB.batch([
+        c.env.DB.prepare('UPDATE usuarios SET pass_hash = ?, pass_sal = ?, debe_cambiar = 1 WHERE id = ?')
+            .bind(hash, sal, r.usuario_id),
+        // Cerrar todas sus sesiones: si alguien había entrado con la vieja, fuera
+        c.env.DB.prepare('DELETE FROM sesiones WHERE usuario_id = ?').bind(r.usuario_id),
+        c.env.DB.prepare("UPDATE recuperaciones SET estado = 'resuelta', resuelto = ? WHERE id = ?")
+            .bind(ahora(), r.id)
+    ]);
+    return { ok: true, temporal };
+});
+
+ruta('GET', /^\/api\/admin\/verificaciones$/, async (c) => {
+    await c.exigirAdmin();
+    const { results } = await c.env.DB.prepare(`
+        SELECT v.*, u.nick, u.ff_uid, u.whatsapp, u.nivel FROM verificaciones v
+        JOIN usuarios u ON u.id = v.usuario_id
+        WHERE v.estado = 'pendiente' ORDER BY v.creado ASC`).all();
+    return (results || []).map((v) => ({
+        id: v.id, nick: v.nick, ffUid: v.ff_uid, whatsapp: v.whatsapp,
+        nivel: v.nivel, codigo: v.codigo, creado: v.creado
+    }));
+});
+
+ruta('POST', /^\/api\/admin\/verificaciones\/([\w-]+)$/, async (c, m) => {
+    await c.exigirAdmin();
+    const v = await c.env.DB.prepare("SELECT * FROM verificaciones WHERE id = ? AND estado = 'pendiente'")
+        .bind(m[1]).first();
+    if (!v) throw noEncontrado('Esa solicitud no existe o ya fue resuelta.');
+
+    const aprobar = !!c.cuerpo.aprobar;
+    const lote = [
+        c.env.DB.prepare('UPDATE verificaciones SET estado = ?, nota = ?, resuelto = ? WHERE id = ?')
+            .bind(aprobar ? 'aprobada' : 'rechazada', String(c.cuerpo.nota || '').slice(0, 120), ahora(), v.id)
+    ];
+    if (aprobar) {
+        lote.push(c.env.DB.prepare('UPDATE usuarios SET verificado = 1 WHERE id = ?').bind(v.usuario_id));
+    }
+    await c.env.DB.batch(lote);
+    return { ok: true };
+});
+
 /* ---------- Público ---------- */
 ruta('GET', /^\/api\/estadisticas$/, async (c) => {
     const t = await c.env.DB.prepare('SELECT COUNT(*) n FROM torneos').first();
@@ -561,6 +771,7 @@ export default {
         let cacheUsuario;
         const ctx = {
             env, cuerpo, token, url,
+            ip: req.headers.get('CF-Connecting-IP') || req.headers.get('x-forwarded-for') || 'desconocida',
             async usuario() {
                 if (cacheUsuario !== undefined) return cacheUsuario;
                 if (!token) return (cacheUsuario = null);

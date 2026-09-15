@@ -134,7 +134,7 @@ Súbelo a GitHub. Desde ese momento todos ven lo mismo.
 ## 8. Comprobar
 
 ```bash
-node ../api/verificar-despliegue.js https://torneos-ff.tu-usuario.workers.dev
+node verificar-despliegue.js https://torneos-ff.tu-usuario.workers.dev
 ```
 
 Todo con ✔. La que más importa: **"Los avisos de pago sin firma se rechazan"**.
