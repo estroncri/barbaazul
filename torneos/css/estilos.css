@@ -99,8 +99,8 @@ body {
 /* ===== Tipografía ===== */
 h1, h2, h3, h4, .display {
     font-family: 'Teko', 'Bebas Neue', sans-serif;
-    font-weight: 600; line-height: .95; letter-spacing: .5px;
-    text-transform: uppercase;
+    font-weight: 600; line-height: .95; letter-spacing: .3px;
+    text-transform: uppercase; text-wrap: balance;
 }
 h1 { font-size: clamp(2.2rem, 8.4vw, 4.6rem); line-height: 1.02; }
 h2 { font-size: clamp(1.8rem, 6vw, 2.9rem); }
@@ -147,6 +147,25 @@ a { color: inherit; text-decoration: none; }
 .section { margin: 46px 0; }
 .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
 .section-head p { color: var(--txt-2); font-size: .9rem; max-width: 52ch; }
+
+/* Encabezado centrado: el patrón de las secciones del inicio */
+.titulo-seccion { text-align: center; margin: 0 auto clamp(22px, 4vw, 34px); max-width: 60ch; }
+.titulo-seccion .eyebrow { display: block; margin-bottom: 6px; }
+.titulo-seccion h2 { margin-bottom: 10px; }
+.titulo-seccion p { color: var(--txt-2); font-size: .92rem; line-height: 1.65; margin: 0 auto; max-width: 52ch; }
+.titulo-seccion h2::after { left: 50%; transform: translateX(-50%) scaleX(0); transform-origin: center; width: 64px; }
+.titulo-seccion h2 { position: relative; display: inline-block; padding-bottom: 10px; }
+@keyframes extenderCentro { to { transform: translateX(-50%) scaleX(1); } }
+.titulo-seccion h2::after { animation: extenderCentro .7s .2s cubic-bezier(.2,.8,.2,1) forwards; }
+
+/* Separador entre secciones: un rombo, no una línea suelta */
+.separador { display: flex; align-items: center; justify-content: center; gap: 12px; margin: clamp(34px, 6vw, 60px) auto; }
+.separador::before, .separador::after {
+    content: ''; height: 1px; width: min(120px, 22vw);
+    background: linear-gradient(90deg, transparent, var(--line-2));
+}
+.separador::after { background: linear-gradient(90deg, var(--line-2), transparent); }
+.separador i { color: var(--fire); font-size: .8rem; }
 .eyebrow {
     font-family: 'Teko', sans-serif; text-transform: uppercase; letter-spacing: 3px;
     font-size: .95rem; color: var(--fire);
@@ -276,59 +295,54 @@ a { color: inherit; text-decoration: none; }
 @media (min-width: 960px) { .split { grid-template-columns: 1.55fr .95fr; align-items: start; } }
 
 /* ===== HERO ===== */
-.hero { position: relative; padding: 28px 0 10px; }
-
-/* Portada: aparece sola cuando existe img/portada.* */
-.hero-portada { display: none; }
-.con-portada .hero-portada {
-    display: block; position: relative;
-    width: 100vw; left: 50%; margin-left: -50vw;   /* de borde a borde */
-    /* Sin meterse bajo la barra: en pantallas bajas le cortaba la corona */
-    margin-top: -18px;
-    height: clamp(190px, 32vw, 400px);
-    overflow: hidden;
+.hero {
+    position: relative; padding: clamp(14px, 3.5vw, 40px) 0 clamp(20px, 4vw, 40px);
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center;
 }
-.con-portada .hero-portada::before {
-    content: '';
-    /* La caja se ajusta EXACTAMENTE a la imagen (16:9), así el difuminado
-       coincide con sus bordes. Antes el degradado se calculaba sobre la
-       banda completa y el borde derecho de la foto quedaba a la vista. */
-    position: absolute; top: 0; bottom: 0; left: 50%; translate: -50% 0;
-    height: 100%; width: auto; aspect-ratio: 16 / 9;
+.hero > * { max-width: 100%; }
+
+/* Portada: fondo fijo de toda la página.
+   Se usa una capa position:fixed en vez de background-attachment:fixed
+   porque en iOS esa propiedad está rota desde hace años (la imagen
+   salta o se estira al desplazar). */
+.fondo-portada { display: none; }
+.con-portada .fondo-portada {
+    display: block; position: fixed; inset: 0; z-index: -3;
     background-image: var(--portada);
     background-size: cover; background-position: center;
-    -webkit-mask-image: radial-gradient(ellipse 62% 72% at 50% 46%, #000 38%, rgba(0,0,0,.28) 72%, transparent 100%);
-    mask-image: radial-gradient(ellipse 62% 72% at 50% 46%, #000 38%, rgba(0,0,0,.28) 72%, transparent 100%);
-    animation: acercar 26s ease-in-out infinite alternate;
+    opacity: .42;
 }
-/* Se funde con la página por abajo, para que no quede un corte recto */
-.con-portada .hero-portada::after {
+/* Oscurecido para que el texto siempre se lea encima */
+.con-portada .fondo-portada::after {
     content: ''; position: absolute; inset: 0;
-    background: linear-gradient(to bottom, rgba(0,0,0,.35) 0%, transparent 35%, transparent 55%, var(--bg) 97%);
+    background:
+        radial-gradient(ellipse 60% 48% at 50% 34%, rgba(0,0,0,.5), rgba(0,0,0,.86) 72%),
+        linear-gradient(to bottom, rgba(0,0,0,.6) 0%, rgba(0,0,0,.88) 55%, var(--bg) 100%);
 }
-@keyframes acercar {
-    from { transform: scale(1); }
-    to   { transform: scale(1.05); }
-}
-.con-portada .hero { padding-top: 0; }
-.con-portada .view { padding-top: calc(var(--nav-h) + env(safe-area-inset-top, 0px) + 8px); }
-.con-portada .hero-logo { display: none; }   /* la portada ya trae el escudo */
-.con-portada .hero-badge { margin-top: -6px; }
+/* El fondo ya lleva el escudo centrado: el del hero sobraría */
+.con-portada .hero-logo { display: none; }
+
+/* Con portada, el fondo de brasas se atenúa para no competir */
+.con-portada .bg-fx { opacity: .45; }
+.con-portada .bg-grid { opacity: .18; }
+
+/* Insignia, titular y llamadas del hero */
 .hero-badge {
-    display: inline-flex; align-items: center; gap: 8px; padding: 7px 15px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px;
     background: rgba(255,122,24,.12); box-shadow: inset 0 0 0 1px rgba(255,122,24,.38);
-    font-size: .76rem; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--fire-2);
-    margin-bottom: 16px;
+    font-size: .74rem; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase;
+    color: var(--fire-2); margin-bottom: 18px;
 }
 .dot-live { width: 7px; height: 7px; border-radius: 50%; background: var(--rojo); animation: pulse 1.4s infinite; }
-@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .3; transform: scale(1.5); } }
-.hero h1 { margin-bottom: 14px; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .3; transform: scale(1.5); } }
+
+.hero h1 { margin-bottom: 18px; }
 .hero p.lead {
-    color: var(--txt-2); font-size: clamp(.94rem, 2.6vw, 1.05rem);
-    max-width: 60ch; margin-bottom: 22px; line-height: 1.65;
+    color: var(--txt-2); font-size: clamp(.95rem, 2.5vw, 1.08rem);
+    max-width: 54ch; margin: 0 auto 28px; line-height: 1.7; text-wrap: pretty;
 }
-.hero h1 { text-wrap: balance; }
-.hero-cta { display: flex; flex-wrap: wrap; gap: 10px; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 
 /* Countdown */
 .countdown { display: flex; gap: 8px; margin: 18px 0; }
@@ -341,27 +355,60 @@ a { color: inherit; text-decoration: none; }
 
 /* Stats */
 .stat { text-align: center; padding: 16px 10px; }
-.stat-num { font-family: 'Teko', sans-serif; font-size: clamp(1.8rem, 7vw, 2.6rem); line-height: 1; }
+.stat-num { font-family: 'Teko', sans-serif; font-size: clamp(1.8rem, 7vw, 2.6rem); line-height: 1; font-variant-numeric: tabular-nums; }
 .stat-lbl { font-size: .68rem; letter-spacing: 1.4px; text-transform: uppercase; color: var(--txt-3); margin-top: 4px; }
 
 /* ===== Tarjeta de torneo ===== */
-.t-card { padding: 0; }
+.t-card { padding: 0; display: flex; flex-direction: column; }
 .t-top {
-    padding: 16px 18px 14px; position: relative;
+    padding: 18px 18px 15px; position: relative;
     border-bottom: 1px solid var(--line);
 }
+/* Franja lateral que dice de un vistazo en qué estado está el torneo */
+.t-card::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; z-index: 1;
+    background: linear-gradient(to bottom, var(--brasa), var(--oro));
+}
+.t-card[data-estado="finalizado"]::before { background: rgba(255,255,255,.14); }
+.t-card[data-estado="en_curso"]::before { background: linear-gradient(to bottom, var(--rojo), var(--fire)); }
+.t-body { display: flex; flex-direction: column; flex: 1; }
+.t-body .cupo-bar { margin-top: auto; }
 .t-card[data-tema="fuego"] .t-top { background: linear-gradient(130deg, rgba(255,106,26,.22), transparent 70%); }
 .t-card[data-tema="neon"]  .t-top { background: linear-gradient(130deg, rgba(255,77,0,.26), transparent 70%); }
 .t-card[data-tema="hielo"] .t-top { background: linear-gradient(130deg, rgba(255,198,51,.22), transparent 70%); }
 .t-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 9px; }
 .t-card h3 { margin-bottom: 4px; }
-.t-fecha { font-size: .8rem; color: var(--txt-2); display: flex; align-items: center; gap: 6px; }
+.t-fecha { font-size: .82rem; color: var(--txt-2); display: flex; align-items: center; gap: 6px; }
 .t-body { padding: 14px 18px 18px; }
-.t-rows { display: grid; gap: 9px; margin-bottom: 14px; }
-.t-row { display: flex; justify-content: space-between; align-items: center; font-size: .84rem; }
-.t-row span:first-child { color: var(--txt-3); }
+.t-rows { display: grid; gap: 0; margin-bottom: 14px; }
+.t-row { display: flex; justify-content: space-between; align-items: center; font-size: .84rem; gap: 12px; }
+.t-rows .t-row { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.t-rows .t-row:last-child { border-bottom: 0; }
+.t-row span:first-child {
+    color: var(--txt-3); font-size: .72rem; letter-spacing: 1.1px; text-transform: uppercase; font-weight: 700;
+}
+.t-row b { font-variant-numeric: tabular-nums; }
 .t-row b { font-weight: 700; }
-.premio { font-family: 'Teko', sans-serif; font-size: 1.9rem; line-height: 1; }
+.premio { font-family: 'Teko', sans-serif; font-size: 1.9rem; line-height: 1; font-variant-numeric: tabular-nums; }
+
+/* Torneo destacado del inicio: mismo eje que el hero */
+.destacada { text-align: center; }
+.destacada .t-meta { justify-content: center; }
+.destacada .t-fecha { justify-content: center; }
+.destacada h2 { margin-bottom: 8px; }
+.destacada .countdown { max-width: 520px; margin-left: auto; margin-right: auto; }
+.destacada .grid { max-width: 620px; margin: 0 auto; }
+.destacada .btn-block { max-width: 420px; margin-left: auto; margin-right: auto; }
+
+/* Cabecera del detalle de torneo, centrada igual que el resto */
+.detalle-cabecera { text-align: center; }
+.detalle-cabecera .t-meta { justify-content: center; }
+.detalle-cabecera .t-fecha { justify-content: center; }
+/* El cuerpo sigue el mismo eje: marcador, cifras y botones al centro */
+.detalle-cuerpo { text-align: center; }
+.detalle-cuerpo .countdown { max-width: 560px; margin-left: auto; margin-right: auto; }
+.detalle-cuerpo .flex { justify-content: center; }
+.detalle-cuerpo .cupo-bar { max-width: 660px; margin: 0 auto; }
 
 /* Pills / badges */
 .pill {
@@ -560,7 +607,9 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
 .locked i { font-size: 1.8rem; display: block; margin-bottom: 8px; color: var(--txt-3); }
 
 /* ===== Tabs ===== */
-.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 16px; }
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 20px; }
+.tabs-centro { justify-content: flex-start; }
+@media (min-width: 720px) { .tabs-centro { justify-content: center; } }
 .tab {
     padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent;
     color: var(--txt-2); font-family: inherit; font-weight: 700; font-size: .8rem; cursor: pointer;
@@ -631,7 +680,14 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
 .demo-strip b { color: #fff; }
 
 /* Footer */
-footer { margin-top: 56px; padding: 28px 0 60px; border-top: 1px solid var(--line); color: var(--txt-3); font-size: .8rem; }
+footer {
+    margin-top: 56px; padding: 40px 0 70px; border-top: 1px solid var(--line);
+    color: var(--txt-3); font-size: .82rem; text-align: center;
+}
+footer .pie-logo { width: 46px; height: 46px; margin: 0 auto 12px; display: block; opacity: .9; }
+footer .pie-marca { font-family: 'Teko', sans-serif; font-size: 1.5rem; letter-spacing: 1px; color: var(--txt); margin-bottom: 10px; }
+footer p { max-width: 58ch; margin: 0 auto 10px; line-height: 1.6; }
+footer .pie-enlaces { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
 footer a { color: var(--oro); }
 
 /* ============================================================
@@ -714,7 +770,7 @@ footer a { color: var(--oro); }
 
 /* Escudo grande del inicio */
 .hero-logo {
-    width: clamp(120px, 34vw, 190px); height: auto; display: block; margin: 0 auto 14px;
+    width: clamp(118px, 26vw, 176px); height: auto; display: block; margin: 0 auto 18px;
     filter: drop-shadow(0 0 28px rgba(255,122,24,.6));
     animation: flotar 5.5s ease-in-out infinite;
 }

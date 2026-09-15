@@ -161,8 +161,7 @@
 
         return `
         <section class="hero wrap">
-            <div class="hero-portada" aria-hidden="true"></div>
-            <img src="img/logo.svg" alt="" class="hero-logo reveal">
+            <img src="img/logo.svg" alt="Torneos FF" class="hero-logo reveal">
             <div class="hero-badge reveal"><span class="dot-live"></span>Inscripciones abiertas</div>
             <h1 class="reveal">Torneos de <span class="grad-fire">Free Fire</span><br>con premios <span class="grad-oro">reales</span></h1>
             <p class="lead reveal">Conecta tu cuenta de Free Fire, paga tu cupo desde la plataforma y compite.
@@ -176,7 +175,7 @@
 
         ${destacado ? `
         <section class="section wrap">
-            <div class="card card-ardiendo" style="padding:20px">
+            <div class="card card-ardiendo destacada" style="padding:clamp(20px,4vw,32px)">
                 <div class="t-meta">
                     <span class="pill pill-${destacado.modo}">${S.nombreModo[destacado.modo]}</span>
                     <span class="pill pill-${destacado.estado}">${etiquetaEstado(destacado.estado)}</span>
@@ -205,20 +204,27 @@
             </div>
         </section>` : ''}
 
+        <div class="separador" aria-hidden="true"><i class="bi bi-fire"></i></div>
+
         <section class="section wrap">
-            <div class="section-head">
-                <div>
-                    <div class="eyebrow">Agenda</div>
-                    <h2>Próximos torneos</h2>
-                </div>
-                <a href="#/torneos" class="btn btn-ghost btn-sm">Ver todos <i class="bi bi-arrow-right"></i></a>
+            <div class="titulo-seccion">
+                <span class="eyebrow">Agenda</span>
+                <h2>Próximos torneos</h2>
+                <p>Cada torneo dice su modo, su cupo y cuánto reparte antes de que pagues nada.</p>
             </div>
             <div class="grid g-cards">
                 ${(proximos.length ? proximos : torneos).slice(0, 3).map(cardTorneo).join('')}
             </div>
+            <div class="center mt">
+                <a href="#/torneos" class="btn btn-ghost">Ver todos los torneos <i class="bi bi-arrow-right"></i></a>
+            </div>
         </section>
 
         <section class="section wrap">
+            <div class="titulo-seccion">
+                <span class="eyebrow">La comunidad</span>
+                <h2>Los números</h2>
+            </div>
             <div class="grid g4">
                 <div class="card stat reveal"><div class="stat-num grad-fire" data-valor="${stats.torneos}">${stats.torneos}</div><div class="stat-lbl">Torneos</div></div>
                 <div class="card stat reveal"><div class="stat-num grad-oro" data-valor="${stats.jugadores}">${stats.jugadores}</div><div class="stat-lbl">Inscripciones</div></div>
@@ -227,9 +233,13 @@
             </div>
         </section>
 
+        <div class="separador" aria-hidden="true"><i class="bi bi-fire"></i></div>
+
         <section class="section wrap">
-            <div class="section-head">
-                <div><div class="eyebrow">Paso a paso</div><h2>Cómo funciona</h2></div>
+            <div class="titulo-seccion">
+                <span class="eyebrow">Paso a paso</span>
+                <h2>Cómo funciona</h2>
+                <p>Del aviso en el grupo hasta la plata en tu cuenta, en seis pasos.</p>
             </div>
             <div class="grid g2">
                 ${[
@@ -256,7 +266,7 @@
     function cardTorneo(t) {
         const pct = Math.min(100, Math.round((t.inscritos / t.cupoMax) * 100));
         return `
-        <a href="#/torneo/${t.id}" class="card card-hover t-card reveal" data-tema="${esc(t.tema || 'fuego')}">
+        <a href="#/torneo/${t.id}" class="card card-hover t-card reveal" data-tema="${esc(t.tema || 'fuego')}" data-estado="${esc(t.estado)}">
             <div class="t-top">
                 <div class="t-meta">
                     <span class="pill pill-${t.modo}">${S.nombreModo[t.modo]}</span>
@@ -297,11 +307,12 @@
         ];
         return `
         <div class="wrap">
-            <div class="section-head" style="margin-top:8px">
-                <div><div class="eyebrow">Calendario</div><h2>Torneos</h2>
-                <p>Escoge tu torneo, paga el cupo y aparece en la lista de participantes al instante.</p></div>
+            <div class="titulo-seccion" style="margin-top:8px">
+                <span class="eyebrow">Calendario</span>
+                <h2>Torneos</h2>
+                <p>Escoge tu torneo, paga el cupo y aparece en la lista de participantes al instante.</p>
             </div>
-            <div class="tabs" id="tabsTorneos">
+            <div class="tabs tabs-centro" id="tabsTorneos">
                 ${tabs.map(([k, t]) => `<button class="tab ${filtroTorneos === k ? 'on' : ''}" data-f="${k}">${t}</button>`).join('')}
             </div>
             ${lista.length
@@ -340,7 +351,7 @@
             <div class="split">
                 <div>
                     <div class="card" data-tema="${esc(t.tema || 'fuego')}" style="padding:0">
-                        <div class="t-top" style="padding:20px">
+                        <div class="t-top detalle-cabecera" style="padding:clamp(20px,4vw,28px)">
                             <div class="t-meta">
                                 <span class="pill pill-${t.modo}">${S.nombreModo[t.modo]}</span>
                                 <span class="pill pill-${t.estado}">${etiquetaEstado(t.estado)}</span>
@@ -349,7 +360,7 @@
                             <h1 style="font-size:clamp(1.9rem,7vw,3rem);margin-bottom:6px">${esc(t.nombre)}</h1>
                             <div class="t-fecha"><i class="bi bi-calendar-event"></i> ${fecha(t.fecha)}</div>
                         </div>
-                        <div style="padding:18px">
+                        <div class="detalle-cuerpo" style="padding:clamp(18px,3vw,26px)">
                             ${!finalizado ? `<div class="countdown" data-cd="${t.fecha}"></div>` : ''}
                             <div class="grid g3" style="gap:10px">
                                 <div class="stat" style="padding:10px 6px">
@@ -855,8 +866,9 @@
         };
         return `
         <div class="wrap">
-            <div class="section-head" style="margin-top:8px">
-                <div><div class="eyebrow">Tu dinero</div><h2>Billetera</h2></div>
+            <div class="titulo-seccion" style="margin-top:8px">
+                <span class="eyebrow">Tu dinero</span>
+                <h2>Billetera</h2>
             </div>
             <div class="split">
                 <div>
@@ -1108,8 +1120,10 @@
         const cfg = S.config();
         return `
         <div class="wrap" style="max-width:760px">
-            <div class="section-head" style="margin-top:8px">
-                <div><div class="eyebrow">Transparencia</div><h2>Reglas y condiciones</h2></div>
+            <div class="titulo-seccion" style="margin-top:8px">
+                <span class="eyebrow">Transparencia</span>
+                <h2>Reglas y condiciones</h2>
+                <p>Lo que aplica para todos los torneos. Si algo no está aquí, decide el organizador.</p>
             </div>
             ${[
                 ['Cuentas y verificación', [
