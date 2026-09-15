@@ -183,7 +183,14 @@ window.PerfilFF = (function () {
             if (c) return Object.assign({}, c, { deCache: true });
         }
 
-        const endpoint = (window.Store && Store.config().perfilApi) || '';
+        /* De dónde sale el perfil, en orden:
+           1. perfilApi, si alguien puso una dirección a mano.
+           2. El mismo servidor de la plataforma: /api/perfil. Así, en cuanto
+              se despliega el Worker, consultar por ID funciona sin tocar nada.
+           3. Nada: modo ejemplo, y la pantalla lo dice. */
+        const cfg = (window.CONFIG_TORNEOS || {});
+        const endpoint = (window.Store && Store.config().perfilApi)
+            || (cfg.api ? String(cfg.api).replace(/\/$/, '') + '/perfil' : '');
 
         // Sin endpoint propio configurado: modo demostración.
         if (!endpoint) {

@@ -715,6 +715,61 @@ ruta('POST', /^\/api\/admin\/verificaciones\/([\w-]+)$/, async (c, m) => {
     return { ok: true };
 });
 
+/* ---------- Perfil de Free Fire por ID ----------
+   Garena no tiene API oficial, así que esto consulta un servicio de
+   terceros. Se hace DESDE AQUÍ y no desde el navegador por tres razones:
+   el navegador no puede (CORS), la llave del proveedor no puede quedar a
+   la vista, y si cada jugador consultara desde su casa el proveedor
+   acabaría bloqueando por IP. */
+const PROVEEDORES = {
+    jinix: 'https://free-ff-api-src-5plp.onrender.com/api/v1/account?region={region}&uid={uid}',
+    glob:  'https://glob-info2.vercel.app/info?uid={uid}'
+};
+
+ruta('GET', /^\/api\/perfil$/, async (c) => {
+    const uidFF = String(c.url.searchParams.get('uid') || '').replace(/\D/g, '');
+    const region = String(c.url.searchParams.get('region') || 'us').toLowerCase().slice(0, 4);
+    if (!/^\d{6,14}$/.test(uidFF)) throw malaPeticion('El ID de Free Fire son solo números (entre 6 y 14 dígitos).');
+
+    const plantilla = c.env.FF_API_URL || PROVEEDORES[c.env.FF_PROVEEDOR] || '';
+    if (!plantilla) throw new ErrorAPI(503, 'El servidor no tiene configurado el servicio de perfiles.');
+
+    // Un mismo ID consultado varias veces no golpea al proveedor cada vez
+    const claveCache = new Request(`https://cache.torneosff/perfil/${region}/${uidFF}`);
+    const cache = caches.default;
+    const guardado = await cache.match(claveCache);
+    if (guardado) return guardado.json();
+
+    const destino = plantilla.replace('{uid}', encodeURIComponent(uidFF)).replace('{region}', encodeURIComponent(region.toUpperCase()));
+    const cabeceras = { Accept: 'application/json', 'User-Agent': 'TorneosFF/1.0' };
+    if (c.env.FF_API_KEY) {
+        cabeceras.Authorization = 'Bearer ' + c.env.FF_API_KEY;
+        cabeceras['x-api-key'] = c.env.FF_API_KEY;
+    }
+
+    let r;
+    try {
+        r = await fetch(destino, { headers: cabeceras, signal: AbortSignal.timeout(12000) });
+    } catch (e) {
+        throw new ErrorAPI(504, 'El servicio de perfiles no respondió a tiempo. Puedes escribir tu nick a mano.');
+    }
+    if (r.status === 404) throw noEncontrado('No encontramos ninguna cuenta con ese ID en esa región.');
+    if (!r.ok) throw new ErrorAPI(502, `El servicio de perfiles respondió ${r.status}. Puedes escribir tu nick a mano.`);
+
+    let datos;
+    try { datos = await r.json(); } catch (e) { throw new ErrorAPI(502, 'El servicio de perfiles devolvió una respuesta ilegible.'); }
+
+    // Algunos devuelven 200 con el error dentro
+    const tieneCuenta = datos && (datos.basicInfo || datos.account || datos.AccountInfo || datos.nickname);
+    if (!tieneCuenta) throw noEncontrado('No encontramos ninguna cuenta con ese ID en esa región.');
+
+    const respuesta = new Response(JSON.stringify(datos), {
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' }
+    });
+    c.espera(cache.put(claveCache, respuesta.clone()));
+    return datos;
+});
+
 /* ---------- Público ---------- */
 ruta('GET', /^\/api\/estadisticas$/, async (c) => {
     const t = await c.env.DB.prepare('SELECT COUNT(*) n FROM torneos').first();
@@ -746,7 +801,7 @@ function cors(env, origen) {
 }
 
 export default {
-    async fetch(req, env) {
+    async fetch(req, env, ctxWorker) {
         const cabeceras = Object.assign({ 'Content-Type': 'application/json; charset=utf-8' },
                                         cors(env, req.headers.get('Origin') || ''));
         const responder = (codigo, cuerpo) => new Response(JSON.stringify(cuerpo), { status: codigo, headers: cabeceras });
@@ -772,6 +827,7 @@ export default {
         const ctx = {
             env, cuerpo, token, url,
             ip: req.headers.get('CF-Connecting-IP') || req.headers.get('x-forwarded-for') || 'desconocida',
+            espera: (p) => { try { ctxWorker?.waitUntil?.(p); } catch (e) { /* en local no existe */ } },
             async usuario() {
                 if (cacheUsuario !== undefined) return cacheUsuario;
                 if (!token) return (cacheUsuario = null);

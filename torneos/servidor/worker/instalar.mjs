@@ -184,6 +184,31 @@ ${SIMULAR ? '\n  MODO SIMULACIÓN: no se toca nada.\n' : ''}`);
         r.ok || SIMULAR ? c.ok(`${variable} guardado`) : c.error(`No se pudo guardar ${variable}`);
     }
 
+    /* ---- 3b. Servicio de perfiles de Free Fire ---- */
+    c.titulo('3b. Datos de Free Fire por ID');
+    c.info('Es lo que hace que, al escribir el ID, aparezca el nick y el nivel reales.');
+    c.info('Garena no tiene API oficial: se usa un servicio de terceros.\n');
+    c.info('  1) free-ff-api   — gratis, sin llave (recomendado para empezar)');
+    c.info('  2) glob-info2    — gratis, sin llave, no pide región');
+    c.info('  3) otro          — pegas tú la dirección');
+    c.info('  4) ninguno       — el jugador escribe su nick a mano\n');
+
+    const eleccion = await preguntar('¿Cuál? (1/2/3/4)', '1');
+    if (eleccion === '1' || eleccion === '2') {
+        const nombre = eleccion === '1' ? 'jinix' : 'glob';
+        const r = correr(['secret', 'put', 'FF_PROVEEDOR'], { entrada: nombre + '\n' });
+        r.ok || SIMULAR ? c.ok(`Proveedor ${nombre} configurado`) : c.error('No se pudo guardar');
+    } else if (eleccion === '3') {
+        c.info('Usa {uid} y {region} donde vayan. Ej: https://api.com/cuenta?uid={uid}&region={region}');
+        const url = await preguntar('Dirección del servicio');
+        if (url) correr(['secret', 'put', 'FF_API_URL'], { entrada: url + '\n' });
+        const llave = await preguntar('Llave del servicio (Enter si no pide)');
+        if (llave) correr(['secret', 'put', 'FF_API_KEY'], { entrada: llave + '\n' });
+        c.ok('Servicio configurado');
+    } else {
+        c.aviso('Sin servicio: los jugadores escribirán su nick a mano.');
+    }
+
     /* ---- 4. Publicar ---- */
     c.titulo('4. Publicando el servidor');
     const desp = correr(['deploy']);

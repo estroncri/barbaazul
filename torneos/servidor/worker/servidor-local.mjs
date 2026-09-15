@@ -35,8 +35,29 @@ const env = {
     ORIGENES: process.env.ORIGENES || 'http://localhost:8099,http://127.0.0.1:8099',
     WOMPI_LLAVE_PUBLICA: process.env.WOMPI_LLAVE_PUBLICA || '',
     WOMPI_INTEGRIDAD: process.env.WOMPI_INTEGRIDAD || '',
-    WOMPI_EVENTOS: process.env.WOMPI_EVENTOS || ''
+    WOMPI_EVENTOS: process.env.WOMPI_EVENTOS || '',
+    FF_API_URL: process.env.FF_API_URL || '',
+    FF_PROVEEDOR: process.env.FF_PROVEEDOR || '',
+    FF_API_KEY: process.env.FF_API_KEY || ''
 };
+
+/* En Cloudflare existe caches.default; en Node no. Se simula en memoria
+   para que el mismo código corra igual aquí. */
+if (typeof globalThis.caches === 'undefined') {
+    const memoria = new Map();
+    globalThis.caches = {
+        default: {
+            async match(req) {
+                const g = memoria.get(req.url);
+                if (!g || g.hasta < Date.now()) return undefined;
+                return new Response(g.cuerpo, { headers: { 'Content-Type': 'application/json' } });
+            },
+            async put(req, res) {
+                memoria.set(req.url, { cuerpo: await res.text(), hasta: Date.now() + 300000 });
+            }
+        }
+    };
+}
 
 /* Para trabajar en local: asciende a organizador el ID que se indique.
    En producción esto lo hace crear-organizador.mjs contra la base real. */

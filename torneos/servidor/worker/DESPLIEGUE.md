@@ -82,6 +82,33 @@ npx wrangler secret put WOMPI_INTEGRIDAD       # Wompi → Programadores → Sec
 npx wrangler secret put WOMPI_EVENTOS          # la misma pantalla → Eventos
 ```
 
+### Los datos de Free Fire por ID
+
+Es lo que hace que, al escribir el ID en el registro, aparezca el nick y el nivel
+reales en vez de pedirlos a mano. Garena no tiene API oficial, así que se usa un
+servicio de terceros. Hay dos ya cableados, gratis y sin llave:
+
+```bash
+npx wrangler secret put FF_PROVEEDOR     # escribe: jinix   (o: glob)
+```
+
+| Valor | Servicio |
+|-------|----------|
+| `jinix` | [free-ff-api](https://github.com/jinix6/free-ff-api) — por región y UID |
+| `glob` | [glob-info2](https://github.com/paulafredo/free-fire-info-api) — sin región |
+
+Si prefieres otro (uno de pago, más estable), pon la dirección con `{uid}` y
+`{region}` donde vayan, y su llave si la pide:
+
+```bash
+npx wrangler secret put FF_API_URL       # https://api.com/cuenta?uid={uid}&region={region}
+npx wrangler secret put FF_API_KEY       # solo si el servicio la pide
+```
+
+Sin esto la plataforma funciona igual, pero el jugador escribe su nick a mano y
+la pantalla se lo advierte. Ninguno de estos servicios tiene convenio con Garena:
+cuenta con que alguno se caiga y haya que cambiarlo. Cambiarlo es esta línea.
+
 ---
 
 ## 4. Publicar
