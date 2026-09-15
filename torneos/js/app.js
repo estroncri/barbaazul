@@ -163,7 +163,7 @@
         <section class="hero wrap">
             <img src="img/logo.svg" alt="Torneos FF" class="hero-logo reveal">
             <div class="hero-badge reveal"><span class="dot-live"></span>Inscripciones abiertas</div>
-            <h1 class="reveal">Torneos de <span class="grad-fire">Free Fire</span><br>con premios <span class="grad-oro">reales</span></h1>
+            <h1 class="reveal">${porPalabras('Torneos de')} ${porPalabras('Free Fire', 'grad-fire')}<br>${porPalabras('con premios')} ${porPalabras('reales', 'grad-oro')}</h1>
             <p class="lead reveal">Conecta tu cuenta de Free Fire, paga tu cupo desde la plataforma y compite.
             Los participantes, la sala y los resultados se publican aquí para que todo quede claro.
             El aviso de cada torneo y la encuesta del modo salen en el grupo de WhatsApp.</p>
@@ -258,6 +258,18 @@
             </div>
         </section>`;
     };
+
+    /* Parte un texto en palabras animables, escalonadas.
+       La clase del degradado va en CADA palabra: si se pone solo en el
+       contenedor, el recorte del degradado no alcanza a los hijos y las
+       palabras salen transparentes (es decir, invisibles). */
+    let contadorPalabra = 0;
+    function porPalabras(texto, clase) {
+        return texto.split(' ').map((p) => {
+            const n = contadorPalabra++;
+            return `<span class="palabra ${clase || ''}" style="animation-delay:${(0.05 + n * 0.07).toFixed(2)}s">${esc(p)}</span>`;
+        }).join(' ');
+    }
 
     function etiquetaEstado(e) {
         return { abierto: 'Inscripciones abiertas', lleno: 'Cupos llenos', en_curso: 'En curso', finalizado: 'Finalizado', proximo: 'Próximamente' }[e] || e;
@@ -1576,6 +1588,7 @@
     async function render() {
         if (renderizando) return;
         renderizando = true;
+        contadorPalabra = 0;
         cerrarModal();
         const ruta = location.hash || '#/';
         app.innerHTML = `<div class="wrap" style="padding-top:20px"><div class="grid g3">
@@ -1592,11 +1605,21 @@
                 : `<div class="wrap"><div class="empty"><i class="bi bi-compass"></i>
                      Esta página no existe.<div class="mt"><a href="#/" class="btn btn-fire btn-sm">Ir al inicio</a></div></div></div>`;
 
-            app.innerHTML = html;
-            // Re-disparar la animación de entrada en cada cambio de pantalla
-            app.classList.remove('entrando');
-            void app.offsetWidth;
-            app.classList.add('entrando');
+            const pintar = () => {
+                app.innerHTML = html;
+                // Respaldo para navegadores sin View Transitions
+                app.classList.remove('entrando');
+                void app.offsetWidth;
+                app.classList.add('entrando');
+            };
+
+            const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (document.startViewTransition && !quieto) {
+                const vt = document.startViewTransition(pintar);
+                await vt.updateCallbackDone;   // el DOM ya está cambiado
+            } else {
+                pintar();
+            }
             window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
 
             if (ruta.startsWith('#/torneo/')) {
