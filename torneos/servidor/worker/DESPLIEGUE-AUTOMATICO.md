@@ -47,6 +47,7 @@ Uno por uno:
 | `WOMPI_INTEGRIDAD` | Wompi → Programadores → Secretos → Integridad |
 | `WOMPI_EVENTOS` | La misma pantalla → Eventos |
 | `FF_PROVEEDOR` | `jinix` (para que el ID traiga el nick real) |
+| `SUBDOMINIO` | *(opcional)* el nombre que quieres para tu dirección: `algo`.workers.dev |
 
 Los que no pongas simplemente no se activan: sin los de Wompi las recargas van en
 modo manual, y sin `FF_PROVEEDOR` el jugador escribe su nick a mano.
@@ -66,8 +67,9 @@ Lo que hace, en orden:
 2. Crea la base de datos si no existe, o usa la que ya esté.
 3. Aplica las tablas que falten.
 4. Guarda tus secretos en Cloudflare.
-5. Publica el servidor.
-6. Crea tu cuenta de organizador.
+5. Registra tu dirección `algo.workers.dev` si la cuenta todavía no tiene una.
+6. Publica el servidor.
+7. Crea tu cuenta de organizador.
 
 Cuando termina, en el resumen del propio proceso te deja la dirección del
 servidor y las dos cosas que faltan.

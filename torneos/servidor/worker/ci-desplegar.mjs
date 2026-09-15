@@ -30,6 +30,56 @@ function wrangler(args, entrada) {
     return { ok: r.status === 0, salida };
 }
 
+/* Cloudflare contesta aquí lo que wrangler no sabe preguntar. */
+const CF = 'https://api.cloudflare.com/client/v4';
+
+async function cf(ruta, opciones = {}) {
+    const r = await fetch(CF + ruta, {
+        ...opciones,
+        headers: {
+            authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
+            'content-type': 'application/json'
+        }
+    });
+    let json = null;
+    try { json = await r.json(); } catch (e) { /* respuesta vacía */ }
+    return { estado: r.status, json };
+}
+
+const porqué = (json) => (json?.errors || []).map((e) => e.message).join('; ');
+
+async function idCuenta() {
+    if (process.env.CLOUDFLARE_ACCOUNT_ID) return process.env.CLOUDFLARE_ACCOUNT_ID;
+    const { json } = await cf('/accounts');
+    return json?.result?.[0]?.id || '';
+}
+
+/* El nombre va en una dirección de internet: solo minúsculas, números y guiones. */
+const comoNombre = (s) => String(s).toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 63);
+
+/* Una cuenta nueva de Cloudflare no tiene dirección pública hasta que se elige
+   un nombre, y sin ella no hay dónde publicar. Se elige una sola vez. */
+async function asegurarSubdominio(cuenta) {
+    const { json } = await cf(`/accounts/${cuenta}/workers/subdomain`);
+    const ya = json?.result?.subdomain;
+    if (ya) { ok(`Ya la tenías: ${ya}.workers.dev`); return ya; }
+
+    const dueño = (process.env.GITHUB_REPOSITORY || '').split('/')[0];
+    const azar = () => Math.random().toString(36).slice(2, 6);
+    const candidatos = [process.env.SUBDOMINIO, dueño, `torneos-ff-${dueño}`,
+                        `torneos-ff-${azar()}`, `torneos-${azar()}${azar()}`]
+        .filter(Boolean).map(comoNombre).filter((n) => n.length >= 3);
+
+    for (const nombre of candidatos) {
+        const r = await cf(`/accounts/${cuenta}/workers/subdomain`,
+            { method: 'PUT', body: JSON.stringify({ subdomain: nombre }) });
+        if (r.json?.success) { ok(`Registrada: ${nombre}.workers.dev`); return nombre; }
+        aviso(`${nombre} no sirvió: ${porqué(r.json) || 'ocupado'}`);
+    }
+    return '';
+}
+
 /* ---- 1. La base de datos ---- */
 paso('Base de datos D1');
 let idBase = null;
@@ -84,14 +134,34 @@ for (const nombre of SECRETOS) {
 if (!process.env.WOMPI_INTEGRIDAD) aviso('Sin Wompi: las recargas quedan en modo manual.');
 if (!process.env.FF_PROVEEDOR && !process.env.FF_API_URL) aviso('Sin servicio de perfiles: el nick se escribe a mano.');
 
-/* ---- 4. Publicar ---- */
+/* ---- 4. La dirección pública ---- */
+paso('Dirección pública');
+const cuenta = await idCuenta();
+if (!cuenta) throw new Error('El token no deja ver la cuenta: revisa CLOUDFLARE_ACCOUNT_ID.');
+const sub = await asegurarSubdominio(cuenta);
+if (!sub) {
+    console.error(`
+  Cloudflare no dejó registrar la dirección desde aquí. Es cosa de un
+  minuto y se hace una sola vez:
+
+    1. Entra a https://dash.cloudflare.com → Compute (Workers)
+    2. Te pide elegir un nombre (queda como algo.workers.dev)
+    3. Vuelve a Actions y lanza este despliegue otra vez
+
+  Si el nombre que quieres ya está ocupado, guárdalo como el secreto
+  SUBDOMINIO y este despliegue lo usa.`);
+    throw new Error('Falta la dirección workers.dev.');
+}
+
+/* ---- 5. Publicar ---- */
 paso('Publicando');
 const desp = wrangler(['deploy']);
 if (!desp.ok) { console.error(desp.salida); throw new Error('Falló el despliegue.'); }
-const url = (desp.salida.match(/https:\/\/[^\s]+\.workers\.dev/) || [])[0] || '';
-ok(url ? `En línea: ${url}` : 'Publicado');
+const url = (desp.salida.match(/https:\/\/[^\s]+\.workers\.dev/) || [])[0]
+    || `https://${NOMBRE_BASE}.${sub}.workers.dev`;
+ok(`En línea: ${url}`);
 
-/* ---- 5. Cuenta de organizador ---- */
+/* ---- 6. Cuenta de organizador ---- */
 if (process.env.ADMIN_FF_UID && process.env.ADMIN_PASS) {
     paso('Cuenta de organizador');
     const enc = new TextEncoder();
@@ -114,7 +184,7 @@ if (process.env.ADMIN_FF_UID && process.env.ADMIN_PASS) {
     aviso('Sin ADMIN_FF_UID/ADMIN_PASS: la cuenta de organizador se crea aparte.');
 }
 
-/* ---- 6. Lo que queda por hacer a mano ---- */
+/* ---- 7. Lo que queda por hacer a mano ---- */
 console.log(`
 ──────────────────────────────────────────────────────────────
   Servidor publicado${url ? ': ' + url : ''}
