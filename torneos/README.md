@@ -63,6 +63,25 @@ Esta demo **no mueve dinero real** y **no consulta a Garena**. Todo se guarda en
 Para pasar a producción hace falta un backend. Está todo explicado en
 [`ARQUITECTURA.md`](ARQUITECTURA.md).
 
+## Poner el logo y la portada
+
+Los archivos van en `torneos/img/` y la página los detecta sola, sin tocar código:
+
+| Archivo | Dónde sale |
+|---------|-----------|
+| `logo.png` (sin fondo) | Barra superior, inicio, pantalla de carga |
+| `portada.jpg` | Detrás del inicio, con acercamiento lento |
+
+Si no están, el logo cae a un SVG dibujado a mano y el inicio se queda sin portada,
+pero nada se rompe. Detalles y tamaños recomendados en [`img/LEEME.md`](img/LEEME.md).
+
+## Tamaños de pantalla
+
+Probado de 320 px (iPhone SE viejo) a 1920 px, más celular acostado y tablet:
+sin desbordes horizontales y con todo lo que se pulsa por encima de 44 px en pantallas
+táctiles. Las rejillas se acomodan solas al ancho disponible en vez de saltar entre
+tamaños fijos.
+
 ## Estructura
 
 ```

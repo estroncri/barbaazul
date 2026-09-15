@@ -165,6 +165,52 @@
         }, quieto ? 0 : 650);
     }
 
+    /* ===== Imágenes de marca =====
+       El logo y la portada se buscan en varios formatos. Si el archivo no
+       está todavía, la página no se rompe: el logo cae al SVG dibujado y
+       la portada simplemente no aparece. En cuanto se suban a
+       torneos/img/, salen solos sin tocar una línea de código. */
+    const CANDIDATOS = {
+        logo: ['img/logo.png', 'img/logo.webp', 'img/logo.jpg', 'img/logo.jpeg', 'img/logo.svg'],
+        portada: ['img/portada.jpg', 'img/portada.jpeg', 'img/portada.png', 'img/portada.webp']
+    };
+    let logoEncontrado = null;
+
+    function cargaImagen(ruta) {
+        return new Promise((ok) => {
+            const im = new Image();
+            im.onload = () => ok(im.naturalWidth ? ruta : null);
+            im.onerror = () => ok(null);
+            im.src = ruta;
+        });
+    }
+
+    async function primeraQueCargue(rutas) {
+        for (const r of rutas) {
+            const buena = await cargaImagen(r);
+            if (buena) return buena;
+        }
+        return null;
+    }
+
+    function aplicarLogo() {
+        if (!logoEncontrado) return;
+        document.querySelectorAll('.logo-img, .hero-logo').forEach((im) => {
+            if (im.getAttribute('src') !== logoEncontrado) im.src = logoEncontrado;
+        });
+    }
+
+    async function marca() {
+        const logo = await primeraQueCargue(CANDIDATOS.logo);
+        if (logo && !logo.endsWith('.svg')) { logoEncontrado = logo; aplicarLogo(); }
+
+        const portada = await primeraQueCargue(CANDIDATOS.portada);
+        if (portada) {
+            document.documentElement.style.setProperty('--portada', `url("${portada}")`);
+            document.body.classList.add('con-portada');
+        }
+    }
+
     /* ===== Arranque ===== */
     document.addEventListener('click', onda);
     addEventListener('load', quitarCarga);
@@ -173,6 +219,7 @@
 
     brasas();
     barraAlDesplazar();
+    marca();
 
-    window.Efectos = { activarContadores, contar };
+    window.Efectos = { activarContadores, contar, aplicarLogo };
 })();

@@ -161,6 +161,7 @@
 
         return `
         <section class="hero wrap">
+            <div class="hero-portada" aria-hidden="true"></div>
             <img src="img/logo.svg" alt="" class="hero-logo reveal">
             <div class="hero-badge reveal"><span class="dot-live"></span>Inscripciones abiertas</div>
             <h1 class="reveal">Torneos de <span class="grad-fire">Free Fire</span><br>con premios <span class="grad-oro">reales</span></h1>
@@ -1578,6 +1579,10 @@
                      Esta página no existe.<div class="mt"><a href="#/" class="btn btn-fire btn-sm">Ir al inicio</a></div></div></div>`;
 
             app.innerHTML = html;
+            // Re-disparar la animación de entrada en cada cambio de pantalla
+            app.classList.remove('entrando');
+            void app.offsetWidth;
+            app.classList.add('entrando');
             window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
 
             if (ruta.startsWith('#/torneo/')) {
@@ -1588,7 +1593,10 @@
                 iniciarCountdowns();
             }
             pintarNav();
-            if (window.Efectos) window.Efectos.activarContadores(app);
+            if (window.Efectos) {
+                window.Efectos.activarContadores(app);
+                window.Efectos.aplicarLogo();
+            }
         } catch (e) {
             console.error(e);
             app.innerHTML = `<div class="wrap"><div class="msg msg-err">Ocurrió un error: ${esc(e.message)}</div>
