@@ -122,6 +122,41 @@ ok('Tablas al día');
 
 /* ---- 3. Secretos ---- */
 paso('Secretos');
+
+/* Las tres llaves de Wompi tienen que ser del mismo ambiente. Mezclarlas es
+   el fallo más caro que hay aquí: con la llave pública de producción se
+   cobra de verdad, y con el secreto de eventos de pruebas ese cobro nunca
+   se acredita. El jugador paga y se queda sin saldo. Como cada valor dice
+   a qué ambiente pertenece, se comprueba antes de publicar nada. */
+function ambienteDe(valor) {
+    const v = String(valor || '');
+    if (/^pub_(test|stagtest)_/.test(v) || /^(test|stagtest)_/.test(v)) return 'pruebas';
+    if (/^pub_prod_/.test(v) || /^prod_/.test(v)) return 'producción';
+    return null;                              // formato que no conocemos: no opinamos
+}
+
+const ambientes = {
+    WOMPI_LLAVE_PUBLICA: ambienteDe(process.env.WOMPI_LLAVE_PUBLICA),
+    WOMPI_INTEGRIDAD: ambienteDe(process.env.WOMPI_INTEGRIDAD),
+    WOMPI_EVENTOS: ambienteDe(process.env.WOMPI_EVENTOS)
+};
+const conocidos = Object.entries(ambientes).filter(([, a]) => a);
+const distintos = [...new Set(conocidos.map(([, a]) => a))];
+
+if (distintos.length > 1) {
+    console.error(`
+  Las llaves de Wompi son de ambientes distintos:
+
+${conocidos.map(([n, a]) => `    ${n}: ${a}`).join('\n')}
+
+  Así, un pago se cobraría en un ambiente y el aviso llegaría firmado con
+  el secreto del otro: el jugador paga y el saldo no le entra nunca.
+
+  Ve a Wompi, pon el interruptor de arriba en el ambiente que quieras, y
+  copia las TRES de esa misma pantalla.`);
+    throw new Error('Llaves de Wompi mezcladas.');
+}
+if (distintos.length === 1) ok(`Wompi en ${distintos[0]}`);
 const SECRETOS = ['WOMPI_LLAVE_PUBLICA', 'WOMPI_INTEGRIDAD', 'WOMPI_EVENTOS',
                   'FF_PROVEEDOR', 'FF_API_URL', 'FF_API_KEY'];
 for (const nombre of SECRETOS) {
