@@ -201,6 +201,9 @@ console.log(`
 ──────────────────────────────────────────────────────────────
 `);
 
+/* El paso siguiente del despliegue la usa para comprobar el servidor. */
+if (process.env.GITHUB_ENV) writeFileSync(process.env.GITHUB_ENV, `SERVIDOR=${url}\n`, { flag: 'a' });
+
 if (process.env.GITHUB_STEP_SUMMARY) {
     writeFileSync(process.env.GITHUB_STEP_SUMMARY,
         `## Torneos FF desplegado\n\n**Servidor:** ${url || '(sin URL)'}\n\n` +

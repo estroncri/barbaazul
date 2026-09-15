@@ -4,7 +4,7 @@
    ------------------------------------------------------------
    Comprueba que el servidor quedó bien puesto en internet.
 
-       node torneos/servidor/api/verificar-despliegue.js https://tu-servidor.onrender.com
+       node torneos/servidor/worker/verificar-despliegue.js https://torneos-ff.tu-usuario.workers.dev
 
    No pide ningún secreto: solo mira desde fuera, como lo haría
    cualquiera. Lo único que no puede comprobar solo es si el
@@ -15,7 +15,7 @@
 
 const base = (process.argv[2] || '').replace(/\/$/, '');
 if (!base) {
-    console.error('Falta la dirección. Ejemplo:\n  node verificar-despliegue.js https://torneos-ff-api.onrender.com');
+    console.error('Falta la dirección. Ejemplo:\n  node verificar-despliegue.js https://torneos-ff.tu-usuario.workers.dev');
     process.exit(1);
 }
 
@@ -34,7 +34,7 @@ async function pedir(ruta, op = {}) {
         method: op.metodo || 'GET',
         headers: Object.assign({ 'Content-Type': 'application/json' }, op.cabeceras || {}),
         body: op.cuerpo ? JSON.stringify(op.cuerpo) : undefined,
-        signal: AbortSignal.timeout(60000)     // el plan gratuito duerme y tarda en despertar
+        signal: AbortSignal.timeout(30000)
     });
     let datos = null;
     try { datos = await r.json(); } catch (e) { /* puede no ser JSON */ }

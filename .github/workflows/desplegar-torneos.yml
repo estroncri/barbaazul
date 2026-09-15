@@ -61,3 +61,7 @@ jobs:
           ADMIN_NICK: ${{ secrets.ADMIN_NICK }}
           ADMIN_WHATSAPP: ${{ secrets.ADMIN_WHATSAPP }}
         run: node ci-desplegar.mjs
+
+      - name: Comprobar que el servidor quedó bien puesto
+        working-directory: torneos/servidor/worker
+        run: node verificar-despliegue.js "$SERVIDOR"

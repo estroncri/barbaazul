@@ -84,17 +84,14 @@ Ninguna la puede hacer el despliegue solo:
 URL de Eventos:
 
 ```
-https://torneos-ff.TU-USUARIO.workers.dev/api/wompi/eventos
+https://torneos-ff.estroncri.workers.dev/api/wompi/eventos
 ```
 
-**b) Conectar la página.** En `torneos/js/config.js`:
+**b) Conectar la página.** Ya está hecho: `torneos/js/config.js` apunta a
 
 ```js
-api: 'https://torneos-ff.TU-USUARIO.workers.dev/api'
+api: 'https://torneos-ff.estroncri.workers.dev/api'
 ```
-
-Puedes editarlo desde GitHub mismo (lápiz de editar → Commit changes). O me
-pasas la dirección y lo hago yo.
 
 ---
 
@@ -103,7 +100,7 @@ pasas la dirección y lo hago yo.
 Con el repositorio descargado:
 
 ```bash
-node torneos/servidor/worker/verificar-despliegue.js https://torneos-ff.TU-USUARIO.workers.dev
+node torneos/servidor/worker/verificar-despliegue.js https://torneos-ff.estroncri.workers.dev
 ```
 
 Y después la prueba de verdad: entra con tu cuenta, crea un torneo, y desde otro
