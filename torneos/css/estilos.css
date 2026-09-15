@@ -321,9 +321,8 @@ a { color: inherit; text-decoration: none; }
 .hero > * { max-width: 100%; }
 
 /* La portada ya NO se usa como fondo: el fondo es negro puro.
-   El archivo sigue en img/ por si más adelante se quiere en otra parte
-   (una cabecera de torneo, una imagen para compartir). */
-.fondo-portada { display: none !important; }
+   El archivo sigue en img/portada.jpg por si más adelante se quiere en
+   otra parte (cabecera de un torneo, imagen para compartir). */
 
 /* Insignia, titular y llamadas del hero */
 .hero-badge {
