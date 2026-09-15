@@ -281,24 +281,39 @@ a { color: inherit; text-decoration: none; }
 /* Portada: aparece sola cuando existe img/portada.* */
 .hero-portada { display: none; }
 .con-portada .hero-portada {
-    display: block; position: absolute; z-index: -1;
-    top: calc(var(--nav-h) * -1 - 24px); left: 50%; transform: translateX(-50%);
-    width: 100vw; height: clamp(260px, 62vw, 620px);
-    background-image: var(--portada); background-size: cover; background-position: center 35%;
-    opacity: .5;
-    -webkit-mask-image: linear-gradient(#000 15%, rgba(0,0,0,.55) 55%, transparent 92%);
-    mask-image: linear-gradient(#000 15%, rgba(0,0,0,.55) 55%, transparent 92%);
+    display: block; position: relative;
+    width: 100vw; left: 50%; margin-left: -50vw;   /* de borde a borde */
+    /* Sin meterse bajo la barra: en pantallas bajas le cortaba la corona */
+    margin-top: -18px;
+    height: clamp(190px, 32vw, 400px);
+    overflow: hidden;
+}
+.con-portada .hero-portada::before {
+    content: '';
+    /* La caja se ajusta EXACTAMENTE a la imagen (16:9), así el difuminado
+       coincide con sus bordes. Antes el degradado se calculaba sobre la
+       banda completa y el borde derecho de la foto quedaba a la vista. */
+    position: absolute; top: 0; bottom: 0; left: 50%; translate: -50% 0;
+    height: 100%; width: auto; aspect-ratio: 16 / 9;
+    background-image: var(--portada);
+    background-size: cover; background-position: center;
+    -webkit-mask-image: radial-gradient(ellipse 62% 72% at 50% 46%, #000 38%, rgba(0,0,0,.28) 72%, transparent 100%);
+    mask-image: radial-gradient(ellipse 62% 72% at 50% 46%, #000 38%, rgba(0,0,0,.28) 72%, transparent 100%);
     animation: acercar 26s ease-in-out infinite alternate;
 }
+/* Se funde con la página por abajo, para que no quede un corte recto */
 .con-portada .hero-portada::after {
     content: ''; position: absolute; inset: 0;
-    background: radial-gradient(ellipse at 50% 30%, transparent 30%, rgba(0,0,0,.55) 75%);
+    background: linear-gradient(to bottom, rgba(0,0,0,.35) 0%, transparent 35%, transparent 55%, var(--bg) 97%);
 }
 @keyframes acercar {
-    from { transform: translateX(-50%) scale(1); }
-    to   { transform: translateX(-50%) scale(1.09); }
+    from { transform: scale(1); }
+    to   { transform: scale(1.05); }
 }
-.con-portada .hero { padding-top: clamp(20px, 6vw, 60px); }
+.con-portada .hero { padding-top: 0; }
+.con-portada .view { padding-top: calc(var(--nav-h) + env(safe-area-inset-top, 0px) + 8px); }
+.con-portada .hero-logo { display: none; }   /* la portada ya trae el escudo */
+.con-portada .hero-badge { margin-top: -6px; }
 .hero-badge {
     display: inline-flex; align-items: center; gap: 8px; padding: 7px 15px; border-radius: 999px;
     background: rgba(255,122,24,.12); box-shadow: inset 0 0 0 1px rgba(255,122,24,.38);

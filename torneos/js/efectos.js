@@ -206,7 +206,11 @@
 
         const portada = await primeraQueCargue(CANDIDATOS.portada);
         if (portada) {
-            document.documentElement.style.setProperty('--portada', `url("${portada}")`);
+            // Absoluta a propósito: dentro de una variable CSS, una ruta
+            // relativa se resuelve contra la HOJA DE ESTILOS (css/), no
+            // contra la página, y terminaba buscando css/img/portada.jpg.
+            const abs = new URL(portada, location.href).href;
+            document.documentElement.style.setProperty('--portada', `url("${abs}")`);
             document.body.classList.add('con-portada');
         }
     }

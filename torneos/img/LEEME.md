@@ -10,10 +10,19 @@ los busca sola al cargar y, si no están, sigue funcionando.
 
 Los busca en ese orden y se queda con el primero que encuentre.
 
-## Mientras no estén
+## Lo que hay ahora
+
+| Archivo | Uso |
+|---------|-----|
+| `logo.png` | **En uso.** El escudo sin fondo (500x500) |
+| `portada.jpg` | **En uso.** La portada del inicio (1920x1080) |
+| `logo.svg` | Respaldo dibujado a mano, por si falta `logo.png` |
+| `logo-fondo-negro.png` | El mismo logo pero con fondo negro (772 KB). No se usa: la página necesita el transparente. Se puede borrar |
+
+## Si se quitan
 
 - Sin `logo.png` usa `logo.svg`, un escudo dibujado a mano que se parece pero no es el original.
-- Sin `portada.*` el inicio se queda con el fondo de brasas, sin imagen. No se rompe nada.
+- Sin `portada.*` el inicio muestra el escudo suelto sobre el fondo de brasas. No se rompe nada.
 
 ## Cómo subirlos sin usar la terminal
 
