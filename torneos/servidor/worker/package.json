@@ -1,0 +1,15 @@
+{
+  "name": "torneos-ff-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "probar": "node probar.mjs",
+    "desplegar": "wrangler deploy",
+    "migrar": "wrangler d1 migrations apply torneos-ff --remote",
+    "local": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

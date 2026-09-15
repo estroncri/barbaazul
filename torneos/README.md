@@ -57,8 +57,14 @@ Todo depende de una línea en `js/config.js`:
 | `''` (vacío) | **Modo local.** Cada navegador guarda lo suyo. Sirve para ver el diseño |
 | `'https://…'` | **Modo compartido.** Las inscripciones, el saldo y los resultados viven en el servidor: todos ven lo mismo |
 
-El servidor está en [`servidor/api/`](servidor/api/README.md) y no usa ninguna
-librería externa; solo Node 22 o superior. Para probarlo:
+Hay dos versiones del servidor, con las mismas reglas:
+
+| | Para qué |
+|---|---|
+| [`servidor/worker/`](servidor/worker/DESPLIEGUE.md) | **Producción.** Cloudflare Workers + D1: gratis, sin tarjeta, los datos no se borran nunca |
+| [`servidor/api/`](servidor/api/README.md) | Para trabajar en tu computador. Node 22, sin dependencias |
+
+Para probar en local:
 
 ```bash
 ADMIN_FF_UID=tu-id ADMIN_PASS=tu-clave node torneos/servidor/api/servidor.js

@@ -14,6 +14,69 @@ const crypto = require('node:crypto');
 const path = require('node:path');
 
 const RUTA = process.env.DB_RUTA || path.join(__dirname, 'torneos.db');
+
+/* ============================================================
+   Candado contra la pérdida de datos
+   ------------------------------------------------------------
+   En Render, Railway, Fly y compañía el sistema de archivos del
+   contenedor se borra en cada despliegue y cada reinicio. Si la
+   base de datos queda ahí, un día cualquiera desaparecen las
+   cuentas, los saldos y las inscripciones, y no hay vuelta atrás.
+
+   Por eso, en la nube, el servidor NO ARRANCA si la base de datos
+   no está en un disco que sobreviva. Es mejor que el despliegue
+   falle hoy, con un mensaje claro, a que se pierda el dinero de
+   los jugadores dentro de tres semanas.
+   ============================================================ */
+(function exigirDiscoPersistente() {
+    const proveedor = process.env.RENDER ? 'Render'
+        : process.env.RAILWAY_ENVIRONMENT ? 'Railway'
+        : process.env.FLY_APP_NAME ? 'Fly.io'
+        : process.env.KOYEB_APP_NAME ? 'Koyeb'
+        : null;
+
+    if (!proveedor) return;                     // en local no hay nada que proteger
+
+    // Rutas que en estos proveedores corresponden a un disco montado aparte
+    const esPersistente = /^\/(data|datos|var\/data|mnt|persistent|storage)(\/|$)/.test(RUTA);
+    if (esPersistente) return;
+
+    if (process.env.PERMITIR_DATOS_TEMPORALES === '1') {
+        console.warn('\n  ⚠  ATENCIÓN: la base de datos está en almacenamiento temporal.');
+        console.warn('     Se borrará en el próximo despliegue o reinicio.');
+        console.warn('     Solo sirve para probar. NO lo uses para cobrar.\n');
+        return;
+    }
+
+    console.error(`
+  ══════════════════════════════════════════════════════════════
+   NO ARRANCO: la base de datos se perdería
+  ══════════════════════════════════════════════════════════════
+
+   Estás en ${proveedor} y la base de datos apunta a:
+
+       ${RUTA}
+
+   Esa carpeta se borra en cada despliegue y cada reinicio. Con
+   ella se irían las cuentas, los saldos y las inscripciones de
+   todos los jugadores.
+
+   Cómo arreglarlo:
+
+   1. Añade un disco persistente al servicio y móntalo en /data
+      (en Render: pestaña Disks → Add Disk → Mount Path /data).
+   2. Pon la variable de entorno:
+          DB_RUTA=/data/torneos.db
+   3. Vuelve a desplegar.
+
+   Si solo estás probando y no te importa perder los datos:
+          PERMITIR_DATOS_TEMPORALES=1
+
+  ══════════════════════════════════════════════════════════════
+`);
+    process.exit(1);
+})();
+
 const db = new DatabaseSync(RUTA);
 
 db.exec(`
