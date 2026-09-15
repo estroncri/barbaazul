@@ -171,8 +171,7 @@
        la portada simplemente no aparece. En cuanto se suban a
        torneos/img/, salen solos sin tocar una línea de código. */
     const CANDIDATOS = {
-        logo: ['img/logo.png', 'img/logo.webp', 'img/logo.jpg', 'img/logo.jpeg', 'img/logo.svg'],
-        portada: ['img/portada.jpg', 'img/portada.jpeg', 'img/portada.png', 'img/portada.webp']
+        logo: ['img/logo.png', 'img/logo.webp', 'img/logo.jpg', 'img/logo.jpeg', 'img/logo.svg']
     };
     let logoEncontrado = null;
 
@@ -204,15 +203,9 @@
         const logo = await primeraQueCargue(CANDIDATOS.logo);
         if (logo && !logo.endsWith('.svg')) { logoEncontrado = logo; aplicarLogo(); }
 
-        const portada = await primeraQueCargue(CANDIDATOS.portada);
-        if (portada) {
-            // Absoluta a propósito: dentro de una variable CSS, una ruta
-            // relativa se resuelve contra la HOJA DE ESTILOS (css/), no
-            // contra la página, y terminaba buscando css/img/portada.jpg.
-            const abs = new URL(portada, location.href).href;
-            document.documentElement.style.setProperty('--portada', `url("${abs}")`);
-            document.body.classList.add('con-portada');
-        }
+        // La portada ya no se usa como fondo (el fondo es negro puro).
+        // El archivo sigue disponible en img/portada.jpg para cuando haga
+        // falta en otro sitio.
     }
 
     /* ===== Arranque ===== */
