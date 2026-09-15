@@ -1,0 +1,8 @@
+# La base de datos es de cada instalación: nunca va al repositorio.
+# Contiene cuentas, contraseñas y saldos reales.
+torneos.db
+torneos.db-wal
+torneos.db-shm
+*.db
+*.db-wal
+*.db-shm
