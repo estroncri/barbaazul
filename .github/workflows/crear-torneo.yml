@@ -1,0 +1,63 @@
+# Crea un torneo sin tener que abrir el panel.
+#
+# Pestaña Actions → Crear torneo → Run workflow, y sale el formulario.
+# Hace lo mismo que harías tú desde la plataforma: entra con tu cuenta de
+# organizador y le pide al servidor que lo cree.
+#
+# Los precios no se preguntan: los pone el servidor según el modo, que es
+# donde están escritas las reglas (REGLAS-TORNEOS.md). Si quieres otros,
+# se cambian después desde el panel.
+
+name: Crear torneo
+
+on:
+  workflow_dispatch:
+    inputs:
+      nombre:
+        description: 'Nombre del torneo'
+        required: true
+        default: 'Torneo Free Fire'
+      modo:
+        description: 'Modo'
+        required: true
+        type: choice
+        default: solo
+        options: [solo, duo, escuadra]
+      fecha:
+        description: 'Fecha (2026-09-19)'
+        required: true
+      hora:
+        description: 'Hora en Colombia (20:00)'
+        required: true
+        default: '20:00'
+      cupo:
+        description: 'Cupos'
+        required: false
+        default: '48'
+      mapa:
+        description: 'Mapa'
+        required: false
+        default: 'Bermuda'
+
+jobs:
+  crear:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Crear el torneo
+        working-directory: torneos/servidor/worker
+        env:
+          ADMIN_FF_UID: ${{ secrets.ADMIN_FF_UID }}
+          ADMIN_PASS: ${{ secrets.ADMIN_PASS }}
+          NOMBRE: ${{ inputs.nombre }}
+          MODO: ${{ inputs.modo }}
+          FECHA: ${{ inputs.fecha }}
+          HORA: ${{ inputs.hora }}
+          CUPO: ${{ inputs.cupo }}
+          MAPA: ${{ inputs.mapa }}
+        run: node crear-torneo.mjs
