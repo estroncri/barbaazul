@@ -65,8 +65,14 @@ async function pedir(ruta, op = {}) {
             wompiOk ? p.datos.llavePublica : 'faltan WOMPI_LLAVE_PUBLICA o WOMPI_INTEGRIDAD');
     }
     if (wompiOk) {
-        const esPruebas = String(p.datos.llavePublica).startsWith('pub_test');
+        /* Wompi tiene dos ambientes de prueba: el de pruebas (pub_test_) y el
+           sandbox (pub_stagtest_). Ninguno mueve dinero real. */
+        const llave = String(p.datos.llavePublica);
+        const esPruebas = /^pub_(test|stagtest)_/.test(llave);
+        /* Solo el prefijo: la llave entera no hace falta para saber el ambiente. */
+        const familia = (llave.match(/^([a-z]+_[a-z]+)_/) || [])[1] || '(prefijo raro)';
         console.log(`     Modo: ${esPruebas ? 'PRUEBAS (bien para empezar)' : 'PRODUCCIÓN — se cobra dinero real'}`);
+        console.log(`     La llave empieza por ${familia}_`);
     }
 
     /* 3. La dirección de eventos debe rechazar lo que no venga firmado */

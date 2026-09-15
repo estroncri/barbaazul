@@ -40,7 +40,9 @@
         try { PASARELA = await S.pasarela(); } catch (e) { PASARELA = { wompi: false }; }
         return PASARELA;
     }
-    const enPruebas = (p) => /^pub_test/.test(String((p && p.llavePublica) || ''));
+    /* Wompi tiene dos ambientes de prueba: pruebas (pub_test_) y sandbox
+       (pub_stagtest_). En ninguno de los dos se mueve dinero real. */
+    const enPruebas = (p) => /^pub_(test|stagtest)_/.test(String((p && p.llavePublica) || ''));
 
     function avisoDePagos(p) {
         if (p && p.wompi && enPruebas(p)) {
