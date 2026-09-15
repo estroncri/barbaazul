@@ -264,5 +264,64 @@ comprobar(conNueva.estado === 200 && !conNueva.datos.debeCambiar, 'Entra con la 
 const cambioSinSaberla = await llamar('POST', '/api/auth/cambiar-pass', { nueva: 'otra-mas', actual: 'me-la-invento' }, conNueva.datos.token);
 comprobar(cambioSinSaberla.estado === 400, 'Sin la temporal, cambiar la clave exige saber la anterior');
 
+
+/* ============================================================
+   Las contraseñas y el presupuesto de CPU
+   ------------------------------------------------------------
+   El plan gratuito de Cloudflare corta cada petición a los 10 ms
+   de CPU. Con 210.000 vueltas de PBKDF2 (33 ms) nadie podía
+   entrar: el servidor moría antes de contestar. Estas pruebas
+   cuidan que no se vuelva a colar ese número.
+   ============================================================ */
+console.log('\n── Contraseñas ──\n');
+
+const cripto = await import('./src/cripto.js');
+
+const t0 = Date.now();
+const nueva = await cripto.hashPass('una-clave-cualquiera', env);
+const msHash = Date.now() - t0;
+comprobar(msHash < 25, 'Calcular una contraseña cabe en el presupuesto de CPU', `${msHash} ms`);
+comprobar(nueva.hash.startsWith('v2$'), 'La contraseña guardada dice con qué sistema se hizo');
+comprobar(await cripto.verificarPass('una-clave-cualquiera', nueva.hash, nueva.sal, env),
+    'La contraseña correcta se reconoce');
+comprobar(!(await cripto.verificarPass('otra-clave', nueva.hash, nueva.sal, env)),
+    'Una contraseña parecida no cuela');
+
+/* La pimienta: sin ella, el hash robado de la base no sirve de nada */
+const conPim = { ...env, PASS_PIMIENTA: 'la-pimienta-del-servidor' };
+const guardado = await cripto.hashPass('clave-del-jugador', conPim);
+comprobar(await cripto.verificarPass('clave-del-jugador', guardado.hash, guardado.sal, conPim),
+    'Con la pimienta del servidor, la contraseña entra');
+comprobar(!(await cripto.verificarPass('clave-del-jugador', guardado.hash, guardado.sal, env)),
+    'Sin la pimienta, ni la contraseña buena vale');
+comprobar(!(await cripto.verificarPass('clave-del-jugador', guardado.hash, guardado.sal,
+    { ...env, PASS_PIMIENTA: 'otra-pimienta' })), 'Con otra pimienta, tampoco');
+
+/* Una cuenta guardada con el sistema viejo tiene que poder entrar igual,
+   y salir de ahí sola. */
+const salVieja = cripto.aleatorio(16);
+const hashViejo = await (async () => {
+    const enc = new TextEncoder();
+    const k = await crypto.subtle.importKey('raw', enc.encode('clave-de-antes'), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', salt: enc.encode(salVieja), iterations: 210000, hash: 'SHA-256' }, k, 256);
+    return [...new Uint8Array(bits)].map((b) => b.toString(16).padStart(2, '0')).join('');
+})();
+
+comprobar(cripto.esViejo(hashViejo), 'Se reconoce una contraseña guardada con el sistema viejo');
+comprobar(await cripto.verificarPass('clave-de-antes', hashViejo, salVieja, env),
+    'Una contraseña del sistema viejo sigue sirviendo');
+
+db.prepare("UPDATE usuarios SET pass_hash = ?, pass_sal = ? WHERE ff_uid = '2148563097'")
+    .run(hashViejo, salVieja);
+const entraVieja = await llamar('POST', '/api/auth/login', { usuario: '2148563097', pass: 'clave-de-antes' });
+comprobar(entraVieja.estado === 200, 'Entra con la contraseña de antes del cambio');
+
+const rehecha = db.prepare("SELECT pass_hash FROM usuarios WHERE ff_uid = '2148563097'").get();
+comprobar(String(rehecha.pass_hash).startsWith('v2$'),
+    'Al entrar, su contraseña queda guardada con el sistema nuevo');
+const entraOtraVez = await llamar('POST', '/api/auth/login', { usuario: '2148563097', pass: 'clave-de-antes' });
+comprobar(entraOtraVez.estado === 200, 'Y sigue entrando con la misma contraseña de siempre');
+
 console.log(fallos === 0 ? '\n  Todo correcto.\n' : `\n  ${fallos} prueba(s) fallaron.\n`);
 process.exit(fallos ? 1 : 0);

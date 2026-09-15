@@ -12,7 +12,7 @@
    milisegundo antes, la guarda falla y no se cobra nada.
    ============================================================ */
 
-import { uid, ahora, hashPass, verificarPass, aleatorio, sha256 } from './cripto.js';
+import { uid, ahora, hashPass, verificarPass, esViejo, aleatorio, sha256 } from './cripto.js';
 import * as wompi from './wompi.js';
 
 const CUPO_POR_MODO = { solo: 1, duo: 2, escuadra: 4 };
@@ -142,7 +142,7 @@ ruta('POST', /^\/api\/auth\/registro$/, async (c) => {
     const existe = await c.env.DB.prepare('SELECT 1 FROM usuarios WHERE ff_uid = ?').bind(String(ffUid)).first();
     if (existe) throw malaPeticion('Ese ID de Free Fire ya está registrado.');
 
-    const { hash, sal } = await hashPass(pass);
+    const { hash, sal } = await hashPass(pass, c.env);
     const id = uid('u');
     await c.env.DB.prepare(`INSERT INTO usuarios (id, ff_uid, nick, nivel, region, email, whatsapp, pass_hash, pass_sal, rol, verificado, perfil, creado)
                             VALUES (?,?,?,?,?,?,?,?,?,'jugador',0,?,?)`)
@@ -159,12 +159,23 @@ ruta('POST', /^\/api\/auth\/login$/, async (c) => {
     const claves = ['login:' + q, 'ip:' + c.ip];
     await comprobarBloqueo(c.env, claves);
 
+    const pass = String(c.cuerpo.pass || '');
     const u = await c.env.DB.prepare('SELECT * FROM usuarios WHERE ff_uid = ? OR lower(email) = ?').bind(q, q).first();
-    if (!u || !(await verificarPass(String(c.cuerpo.pass || ''), u.pass_hash, u.pass_sal))) {
+    if (!u || !(await verificarPass(pass, u.pass_hash, u.pass_sal, c.env))) {
         await anotarFallo(c.env, claves);
         throw new ErrorAPI(401, 'ID/correo o contraseña incorrectos.');
     }
     await limpiarIntentos(c.env, claves);
+
+    /* Si la clave venía guardada con el sistema viejo, se rehace ahora que
+       la tenemos delante. Es la única ocasión de hacerlo sin molestar a
+       nadie: a partir de la próxima vez ya entra por el camino barato. */
+    if (esViejo(u.pass_hash)) {
+        const nuevo = await hashPass(pass, c.env);
+        c.espera(c.env.DB.prepare('UPDATE usuarios SET pass_hash = ?, pass_sal = ? WHERE id = ?')
+            .bind(nuevo.hash, nuevo.sal, u.id).run()
+            .catch(() => { /* si falla, se vuelve a intentar la próxima vez */ }));
+    }
 
     return {
         token: await crearSesion(c.env, u.id),
@@ -184,12 +195,12 @@ ruta('POST', /^\/api\/auth\/cambiar-pass$/, async (c) => {
        de una sesión que dejó abierta en un computador ajeno. */
     if (!yo.debe_cambiar) {
         const actual = String(c.cuerpo.actual || '');
-        if (!(await verificarPass(actual, yo.pass_hash, yo.pass_sal))) {
+        if (!(await verificarPass(actual, yo.pass_hash, yo.pass_sal, c.env))) {
             throw malaPeticion('La contraseña actual no es correcta.');
         }
     }
 
-    const { hash, sal } = await hashPass(nueva);
+    const { hash, sal } = await hashPass(nueva, c.env);
     await c.env.DB.batch([
         c.env.DB.prepare('UPDATE usuarios SET pass_hash = ?, pass_sal = ?, debe_cambiar = 0 WHERE id = ?')
             .bind(hash, sal, yo.id),
@@ -673,7 +684,7 @@ ruta('POST', /^\/api\/admin\/recuperaciones\/([\w-]+)$/, async (c, m) => {
     }
 
     const temporal = 'FF' + aleatorio(4).toUpperCase();
-    const { hash, sal } = await hashPass(temporal);
+    const { hash, sal } = await hashPass(temporal, c.env);
     await c.env.DB.batch([
         c.env.DB.prepare('UPDATE usuarios SET pass_hash = ?, pass_sal = ?, debe_cambiar = 1 WHERE id = ?')
             .bind(hash, sal, r.usuario_id),

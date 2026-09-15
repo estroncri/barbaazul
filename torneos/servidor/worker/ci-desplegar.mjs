@@ -14,10 +14,21 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+/* El mismo módulo que usa el servidor: si cambia cómo se guardan las
+   contraseñas, esto cambia con él y no se queda a medias. */
+import { hashPass, aleatorio } from './src/cripto.js';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const NOMBRE_BASE = 'torneos-ff';
 const paso = (t) => console.log(`\n▸ ${t}`);
+const comillas = (v) => "'" + String(v).replace(/'/g, "''") + "'";
+
+function sqlUsuario({ ffUid, nick, whatsapp, hash, sal, rol }) {
+    return `INSERT INTO usuarios (id, ff_uid, nick, nivel, region, email, whatsapp, pass_hash, pass_sal, rol, verificado, creado) `
+        + `VALUES ('u_${aleatorio(8)}', ${comillas(ffUid)}, ${comillas(nick)}, 0, 'us', '', ${comillas(whatsapp)}, `
+        + `${comillas(hash)}, ${comillas(sal)}, ${comillas(rol)}, 1, ${comillas(new Date().toISOString())}) `
+        + `ON CONFLICT(ff_uid) DO UPDATE SET rol=excluded.rol, pass_hash=excluded.pass_hash, pass_sal=excluded.pass_sal;`;
+}
 const ok = (t) => console.log(`  ✔ ${t}`);
 const aviso = (t) => console.log(`  ! ${t}`);
 
@@ -189,13 +200,19 @@ ${conocidos.map(([n, a]) => `    ${n}: ${a}`).join('\n')}
 }
 if (distintos.length === 1) ok(`Wompi en ${distintos[0]}`);
 const SECRETOS = ['WOMPI_LLAVE_PUBLICA', 'WOMPI_INTEGRIDAD', 'WOMPI_EVENTOS',
-                  'FF_PROVEEDOR', 'FF_API_URL', 'FF_API_KEY'];
+                  'FF_PROVEEDOR', 'FF_API_URL', 'FF_API_KEY',
+                  'PASS_PIMIENTA', 'PASS_VUELTAS'];
 for (const nombre of SECRETOS) {
     const valor = process.env[nombre];
     if (!valor) continue;
     const r = wrangler(['secret', 'put', nombre], valor + '\n');
     // Nunca se imprime el valor, solo si entró
     r.ok ? ok(`${nombre} actualizado`) : aviso(`No se pudo guardar ${nombre}`);
+}
+if (process.env.PASS_PIMIENTA) {
+    ok('Con pimienta: si algún día la cambias o la quitas, las contraseñas guardadas dejan de valer.');
+} else {
+    aviso('Sin PASS_PIMIENTA: las contraseñas se protegen solo con el cálculo. Ponla mientras no haya jugadores.');
 }
 if (!process.env.WOMPI_INTEGRIDAD) aviso('Sin Wompi: las recargas quedan en modo manual.');
 if (!process.env.FF_PROVEEDOR && !process.env.FF_API_URL) aviso('Sin servicio de perfiles: el nick se escribe a mano.');
@@ -230,24 +247,66 @@ ok(`En línea: ${url}`);
 /* ---- 6. Cuenta de organizador ---- */
 if (process.env.ADMIN_FF_UID && process.env.ADMIN_PASS) {
     paso('Cuenta de organizador');
-    const enc = new TextEncoder();
-    const aHex = (b) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
-    const sal = aHex(crypto.getRandomValues(new Uint8Array(16)));
-    const clave = await crypto.subtle.importKey('raw', enc.encode(process.env.ADMIN_PASS), 'PBKDF2', false, ['deriveBits']);
-    const hash = aHex(await crypto.subtle.deriveBits(
-        { name: 'PBKDF2', salt: enc.encode(sal), iterations: 210000, hash: 'SHA-256' }, clave, 256));
-    const q = (s) => "'" + String(s).replace(/'/g, "''") + "'";
-
-    const sql = `INSERT INTO usuarios (id, ff_uid, nick, nivel, region, email, whatsapp, pass_hash, pass_sal, rol, verificado, creado) `
-        + `VALUES ('u_${aHex(crypto.getRandomValues(new Uint8Array(8)))}', ${q(process.env.ADMIN_FF_UID)}, `
-        + `${q(process.env.ADMIN_NICK || 'ORGANIZADOR')}, 0, 'us', '', ${q(process.env.ADMIN_WHATSAPP || '573000000000')}, `
-        + `${q(hash)}, ${q(sal)}, 'admin', 1, ${q(new Date().toISOString())}) `
-        + `ON CONFLICT(ff_uid) DO UPDATE SET rol='admin', pass_hash=excluded.pass_hash, pass_sal=excluded.pass_sal;`;
-
-    const r = wrangler(['d1', 'execute', NOMBRE_BASE, '--remote', '--command', sql]);
+    const { hash, sal } = await hashPass(process.env.ADMIN_PASS, process.env);
+    const r = wrangler(['d1', 'execute', NOMBRE_BASE, '--remote', '--command',
+        sqlUsuario({
+            ffUid: process.env.ADMIN_FF_UID,
+            nick: process.env.ADMIN_NICK || 'ORGANIZADOR',
+            whatsapp: process.env.ADMIN_WHATSAPP || '573000000000',
+            hash, sal, rol: 'admin'
+        })]);
     r.ok ? ok('Organizador listo (su contraseña es la de ADMIN_PASS)') : aviso('No se pudo crear la cuenta de organizador');
 } else {
     aviso('Sin ADMIN_FF_UID/ADMIN_PASS: la cuenta de organizador se crea aparte.');
+}
+
+/* ---- 7. Probar que de verdad se puede entrar ----
+   Lo demás se comprueba mirando desde fuera, pero entrar es lo único que
+   gasta CPU de verdad, y el plan gratuito corta a los 10 ms. Aquí se crea
+   una cuenta de usar y tirar, se entra con ella y se borra. Si esto falla,
+   el despliegue queda en rojo aunque todo lo demás esté bien. */
+paso('Entrar');
+{
+    const ffUid = '99' + String(Date.now()).slice(-10);
+    const clave = aleatorio(16);
+    const { hash, sal } = await hashPass(clave, process.env);
+
+    const creada = wrangler(['d1', 'execute', NOMBRE_BASE, '--remote', '--command',
+        sqlUsuario({ ffUid, nick: 'PRUEBA-DESPLIEGUE', whatsapp: '573000000000', hash, sal, rol: 'jugador' })]);
+
+    if (!creada.ok) {
+        aviso('No se pudo crear la cuenta de prueba; no se comprobó el entrar.');
+    } else {
+        let estado = 0, dijo = '';
+        try {
+            const r = await fetch(`${url}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuario: ffUid, pass: clave })
+            });
+            estado = r.status;
+            dijo = ((await r.json().catch(() => ({}))).error) || '';
+        } catch (e) { dijo = e.message; }
+
+        /* La cuenta se borra pase lo que pase: no puede quedarse viva una
+           cuenta de prueba en la base de un torneo con dinero. */
+        wrangler(['d1', 'execute', NOMBRE_BASE, '--remote', '--command',
+            `DELETE FROM sesiones WHERE usuario_id IN (SELECT id FROM usuarios WHERE ff_uid = ${comillas(ffUid)});`
+            + ` DELETE FROM usuarios WHERE ff_uid = ${comillas(ffUid)};`]);
+
+        if (estado === 200) {
+            ok('Se puede entrar con usuario y contraseña');
+        } else {
+            console.error(`
+  El servidor publicó bien, pero NADIE PUEDE ENTRAR.
+  Al intentarlo con una cuenta recién creada contestó ${estado}${dijo ? ': ' + dijo : ''}.
+
+  Si dice "Algo falló en el servidor", casi seguro es el tope de CPU del
+  plan gratuito de Cloudflare: comprobar una contraseña cuesta más de lo
+  que deja. Se ajusta con el secreto PASS_VUELTAS (por defecto 20000).`);
+            throw new Error('No se puede entrar.');
+        }
+    }
 }
 
 /* ---- 7. Lo que queda por hacer a mano ---- */

@@ -48,6 +48,7 @@ Uno por uno:
 | `WOMPI_EVENTOS` | La misma pantalla → Eventos |
 | `FF_PROVEEDOR` | `jinix` (para que el ID traiga el nick real) |
 | `SUBDOMINIO` | *(opcional)* el nombre que quieres para tu dirección: `algo`.workers.dev |
+| `PASS_PIMIENTA` | *(opcional, recomendado)* un texto largo al azar. Protege las contraseñas si alguien roba la base |
 
 Los que no pongas simplemente no se activan: sin los de Wompi las recargas van en
 modo manual, y sin `FF_PROVEEDOR` el jugador escribe su nick a mano.
@@ -106,6 +107,27 @@ node torneos/servidor/worker/verificar-despliegue.js https://torneos-ff.estroncr
 Y después la prueba de verdad: entra con tu cuenta, crea un torneo, y desde otro
 navegador regístrate como jugador y recarga con la tarjeta de prueba de Wompi
 (`4242 4242 4242 4242`). El saldo debe aparecer solo.
+
+---
+
+## Las contraseñas y el plan gratuito
+
+Cloudflare corta cada petición a los **10 ms de CPU** en el plan gratuito.
+Guardar contraseñas como manda el manual (210.000 vueltas de PBKDF2) cuesta
+33 ms, así que con eso **nadie puede entrar**: el servidor muere antes de
+contestar y sale "Algo falló en el servidor".
+
+Por eso se dan 20.000 vueltas (unos 5 ms) y se compensa con una **pimienta**:
+un secreto que vive en el servidor y no en la base de datos. Quien se lleve la
+base sin ese secreto no puede ni empezar a probar contraseñas.
+
+Ponla ahora, mientras no haya jugadores: si la añades o la cambias después,
+las contraseñas ya guardadas dejan de valer y cada uno tendrá que pedir
+recuperación. Sirve cualquier texto largo al azar, cuanto más largo mejor.
+
+Si algún día pasas al plan de pago, puedes subir las vueltas con el secreto
+`PASS_VUELTAS` (por ejemplo `210000`) sin tocar nada más: las contraseñas
+guardadas se rehacen solas la próxima vez que cada uno entre.
 
 ---
 
