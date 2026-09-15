@@ -5,7 +5,8 @@
    navegador: el cliente solo pide, el servidor comprueba.
 
    Arrancar:   node torneos/servidor/api/servidor.js
-   Variables:  PUERTO, DB_RUTA, ORIGENES, ADMIN_FF_UID, ADMIN_PASS
+   Variables:  PORT (o PUERTO), DB_RUTA, ORIGENES, ADMIN_FF_UID, ADMIN_PASS,
+               WOMPI_LLAVE_PUBLICA, WOMPI_INTEGRIDAD, WOMPI_EVENTOS, WOMPI_REDIRECT
    ============================================================ */
 
 const http = require('node:http');
@@ -13,7 +14,10 @@ const crypto = require('node:crypto');
 const { db, uid, ahora, hashPass, verificarPass, saldoDe } = require('./db');
 const wompi = require('./wompi');
 
-const PUERTO = Number(process.env.PUERTO || 8790);
+// PORT es lo que inyectan Render, Railway y Fly. PUERTO queda por comodidad
+// al trabajar en local. Si solo se lee PUERTO, el servicio nunca responde
+// donde el proveedor lo busca y el despliegue se marca como caído.
+const PUERTO = Number(process.env.PORT || process.env.PUERTO || 8790);
 const ORIGENES = (process.env.ORIGENES ||
     'https://estroncri.github.io,http://localhost:8099,http://127.0.0.1:8099').split(',');
 const CUPO_POR_MODO = { solo: 1, duo: 2, escuadra: 4 };
@@ -659,9 +663,12 @@ function prepararAdmin() {
 
 if (require.main === module) {
     prepararAdmin();
-    servidor.listen(PUERTO, () => {
-        console.log(`\n  API de Torneos FF en http://localhost:${PUERTO}/api`);
-        console.log(`  Orígenes permitidos: ${ORIGENES.join(', ')}\n`);
+    // 0.0.0.0 explícito: los contenedores enrutan por ahí, no por localhost.
+    servidor.listen(PUERTO, '0.0.0.0', () => {
+        console.log(`\n  API de Torneos FF escuchando en el puerto ${PUERTO}`);
+        console.log(`  Orígenes permitidos: ${ORIGENES.join(', ')}`);
+        console.log(`  Base de datos: ${require('./db').RUTA}`);
+        console.log(`  Pasarela Wompi: ${wompi.configurado() ? 'configurada (' + wompi.CFG.publica.slice(0, 12) + '…)' : 'SIN configurar — las recargas van en modo manual'}\n`);
     });
 }
 

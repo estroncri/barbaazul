@@ -1,0 +1,13 @@
+{
+  "name": "torneos-ff-api",
+  "version": "1.0.0",
+  "description": "API de Torneos FF: cuentas, torneos, inscripciones y saldos",
+  "private": true,
+  "main": "torneos/servidor/api/servidor.js",
+  "scripts": {
+    "start": "node torneos/servidor/api/servidor.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}
