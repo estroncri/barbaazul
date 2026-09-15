@@ -172,10 +172,15 @@
         /* ---- Inscripciones ---- */
         inscribirse: async (torneoId, equipo) => {
             const r = await pedir('/torneos/' + encodeURIComponent(torneoId) + '/inscripciones',
-                { metodo: 'POST', cuerpo: { equipo } });
+                { metodo: 'POST', cuerpo: { equipo, buscarCompanero: !!equipo.buscarCompanero } });
             await refrescarYo();      // el cobro ya cambió el saldo
             return r;
         },
+
+        /* Cuando no aparece compañero, el jugador decide: juega solo con lo
+           que pagó, o cancela y se le devuelve. */
+        jugarSolo: (torneoId) =>
+            pedir('/torneos/' + encodeURIComponent(torneoId) + '/jugar-solo', { metodo: 'POST' }),
 
         cancelarInscripcion: async (torneoId) => {
             const r = await pedir('/torneos/' + encodeURIComponent(torneoId) + '/inscripciones', { metodo: 'DELETE' });

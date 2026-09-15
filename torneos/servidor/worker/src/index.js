@@ -64,6 +64,8 @@ function torneoPublico(t, cuenta, extras) {
 const inscripcionPublica = (i) => ({
     id: i.id, torneoId: i.torneo_id, userId: i.usuario_id,
     equipo: { nombre: i.equipo, miembros: JSON.parse(i.miembros) },
+    grupo: i.grupo || i.id,
+    buscando: !!i.buscando,
     estado: i.estado, creado: i.creado,
     resultado: i.puesto === null || i.puesto === undefined ? null
         : { puesto: i.puesto, kills: i.kills, puntos: i.puntos, premio: i.premio }
@@ -280,7 +282,7 @@ async function crearSesion(env, usuarioId) {
 /* ---------- Torneos ---------- */
 ruta('GET', /^\/api\/torneos$/, async (c) => {
     const { results } = await c.env.DB.prepare(`
-        SELECT t.*, (SELECT COUNT(*) FROM inscripciones i WHERE i.torneo_id = t.id) AS n,
+        SELECT t.*, (SELECT COUNT(DISTINCT COALESCE(i.grupo, i.id)) FROM inscripciones i WHERE i.torneo_id = t.id) AS n,
                (SELECT COALESCE(SUM(json_array_length(i.miembros)),0) FROM inscripciones i WHERE i.torneo_id = t.id) AS j
         FROM torneos t ORDER BY t.fecha ASC`).all();
     return (results || []).map((t) => torneoPublico(t, t));
@@ -299,8 +301,10 @@ ruta('GET', /^\/api\/torneos\/([\w-]+)$/, async (c, m) => {
     const yo = await c.usuario();
     const mia = yo ? participantes.find((p) => p.userId === yo.id) || null : null;
 
+    /* Los cupos son de EQUIPOS: dos sueltos que van a jugar juntos ocupan
+       uno, no dos. Los jugadores sí se cuentan uno por uno. */
     const salida = torneoPublico(t, {
-        n: participantes.length,
+        n: new Set(participantes.map((p) => p.grupo)).size,
         j: participantes.reduce((a, p) => a + p.equipo.miembros.length, 0)
     }, { participantes, miInscripcion: mia });
 
@@ -402,7 +406,37 @@ ruta('POST', /^\/api\/torneos\/([\w-]+)\/cancelar$/, async (c, m) => {
     return { ok: true, devueltos: (results || []).length };
 });
 
-/* ---------- Inscripción: el punto delicado ---------- */
+/* ---------- Inscripción: el punto delicado ----------
+
+   Una inscripción es una PARTE de un equipo. Las que juegan juntas comparten
+   "grupo": un equipo que llega completo es un grupo de una sola fila, y dos
+   jugadores sueltos que la plataforma junta son un grupo de dos filas.
+
+   Cada quien paga solo por los suyos y cada quien conserva su fila, que es
+   lo que hace que después el premio se pueda repartir y que cancelar le
+   devuelva a cada uno lo suyo. */
+
+/* Cuántos jugadores hay ya en un grupo */
+const SQL_EN_GRUPO = `(SELECT COALESCE(SUM(json_array_length(miembros)),0)
+                       FROM inscripciones WHERE torneo_id = ? AND grupo = ?)`;
+
+async function completarGrupo(env, torneo, grupo) {
+    const { results } = await env.DB.prepare(
+        'SELECT * FROM inscripciones WHERE torneo_id = ? AND grupo = ? ORDER BY creado ASC')
+        .bind(torneo.id, grupo).all();
+
+    const filas = results || [];
+    const miembros = filas.flatMap((f) => JSON.parse(f.miembros));
+    if (miembros.length < CUPO_POR_MODO[torneo.modo]) return false;
+
+    /* El equipo pasa a llamarse por sus jugadores: al que se inscribió solo
+       le tiene que quedar claro con quién va a jugar. */
+    const nombre = miembros.map((x) => x.nick).join(' + ').slice(0, 60);
+    await env.DB.batch(filas.map((f) => env.DB.prepare(
+        'UPDATE inscripciones SET buscando = 0, equipo = ? WHERE id = ?').bind(nombre, f.id)));
+    return true;
+}
+
 ruta('POST', /^\/api\/torneos\/([\w-]+)\/inscripciones$/, async (c, m) => {
     const yo = await c.exigirUsuario();
     const t = await c.env.DB.prepare('SELECT * FROM torneos WHERE id = ?').bind(m[1]).first();
@@ -413,25 +447,35 @@ ruta('POST', /^\/api\/torneos\/([\w-]+)\/inscripciones$/, async (c, m) => {
     const miembros = (c.cuerpo.equipo?.miembros || [])
         .filter((x) => x && x.nick && String(x.nick).trim())
         .map((x) => ({ nick: String(x.nick).trim().slice(0, 30), uid: String(x.uid || '').replace(/\D/g, '').slice(0, 14) }));
-    if (miembros.length !== requeridos) throw malaPeticion(`Este torneo necesita ${requeridos} jugador(es).`);
 
-    const total = t.costo * requeridos;
+    /* Sin compañero: paga su parte y la plataforma le busca con quién. */
+    const buscando = !!c.cuerpo.buscarCompanero && requeridos > 1;
+    if (buscando) {
+        if (miembros.length !== 1) throw malaPeticion('Si no tienes compañero, solo van tus datos.');
+    } else if (miembros.length !== requeridos) {
+        throw malaPeticion(`Este torneo necesita ${requeridos} jugador(es).`);
+    }
+
+    const total = t.costo * miembros.length;
     const idIns = uid('i');
     const idTx = uid('tx');
     const nombreEquipo = String(c.cuerpo.equipo?.nombre || yo.nick).slice(0, 40);
 
-    /* Las tres condiciones viajan DENTRO del INSERT. Si entre la consulta y
-       la escritura alguien más se inscribe o el saldo cambia, la fila
+    /* Las condiciones viajan DENTRO del INSERT. Si entre la consulta y la
+       escritura alguien más se inscribe o el saldo cambia, la fila
        sencillamente no entra y no se cobra nada. El cobro va en el mismo
-       lote y solo ocurre si la inscripción existe. */
+       lote y solo ocurre si la inscripción existe.
+
+       El cupo se cuenta por equipos (grupos), no por filas: dos sueltos que
+       van a jugar juntos ocupan un cupo, no dos. */
     const lote = await c.env.DB.batch([
         c.env.DB.prepare(`
-            INSERT INTO inscripciones (id, torneo_id, usuario_id, equipo, miembros, estado, creado)
-            SELECT ?, ?, ?, ?, ?, 'confirmada', ?
-            WHERE (SELECT COUNT(*) FROM inscripciones WHERE torneo_id = ?) < (SELECT cupo_max FROM torneos WHERE id = ?)
+            INSERT INTO inscripciones (id, torneo_id, usuario_id, equipo, miembros, estado, creado, grupo, buscando)
+            SELECT ?, ?, ?, ?, ?, 'confirmada', ?, ?, ?
+            WHERE (SELECT COUNT(DISTINCT COALESCE(grupo, id)) FROM inscripciones WHERE torneo_id = ?) < (SELECT cupo_max FROM torneos WHERE id = ?)
               AND NOT EXISTS (SELECT 1 FROM inscripciones WHERE torneo_id = ? AND usuario_id = ?)
               AND ${SQL_SALDO} >= ?`)
-            .bind(idIns, t.id, yo.id, nombreEquipo, JSON.stringify(miembros), ahora(),
+            .bind(idIns, t.id, yo.id, nombreEquipo, JSON.stringify(miembros), ahora(), idIns, buscando ? 1 : 0,
                   t.id, t.id, t.id, yo.id, yo.id, total),
 
         c.env.DB.prepare(`
@@ -443,7 +487,7 @@ ruta('POST', /^\/api\/torneos\/([\w-]+)\/inscripciones$/, async (c, m) => {
         c.env.DB.prepare(`
             UPDATE torneos SET estado = 'lleno'
             WHERE id = ? AND estado = 'abierto'
-              AND (SELECT COUNT(*) FROM inscripciones WHERE torneo_id = ?) >= cupo_max`)
+              AND (SELECT COUNT(DISTINCT COALESCE(grupo, id)) FROM inscripciones WHERE torneo_id = ?) >= cupo_max`)
             .bind(t.id, t.id)
     ]);
 
@@ -451,13 +495,54 @@ ruta('POST', /^\/api\/torneos\/([\w-]+)\/inscripciones$/, async (c, m) => {
         // No entró: hay que decirle al jugador por qué.
         const ya = await c.env.DB.prepare('SELECT 1 FROM inscripciones WHERE torneo_id = ? AND usuario_id = ?').bind(t.id, yo.id).first();
         if (ya) throw malaPeticion('Ya estás inscrito en este torneo.');
-        const n = await c.env.DB.prepare('SELECT COUNT(*) n FROM inscripciones WHERE torneo_id = ?').bind(t.id).first();
+        const n = await c.env.DB.prepare('SELECT COUNT(DISTINCT COALESCE(grupo, id)) n FROM inscripciones WHERE torneo_id = ?').bind(t.id).first();
         if (n.n >= t.cupo_max) throw malaPeticion('Ya no quedan cupos.');
         throw malaPeticion('Saldo insuficiente. Recarga en tu billetera.');
     }
 
+    /* Ya está dentro y pagado. Ahora, si vino solo, se le busca equipo entre
+       los que también están esperando: el que lleva más tiempo primero.
+
+       La condición va dentro del UPDATE para que dos que lleguen a la vez no
+       se metan los dos en el mismo hueco. Si no cabe, se queda esperando en
+       su grupo, que es exactamente donde estaba. */
+    let grupo = idIns;
+    if (buscando) {
+        const hueco = await c.env.DB.prepare(`
+            SELECT grupo, SUM(json_array_length(miembros)) AS n, MIN(creado) AS desde
+            FROM inscripciones
+            WHERE torneo_id = ? AND buscando = 1 AND grupo != ?
+            GROUP BY grupo HAVING n < ? ORDER BY desde ASC LIMIT 1`)
+            .bind(t.id, idIns, requeridos).first();
+
+        if (hueco) {
+            const r = await c.env.DB.prepare(`
+                UPDATE inscripciones SET grupo = ?
+                WHERE id = ? AND ${SQL_EN_GRUPO} + ? <= ?`)
+                .bind(hueco.grupo, idIns, t.id, hueco.grupo, miembros.length, requeridos).run();
+            if (r.meta.changes) grupo = hueco.grupo;
+        }
+        await completarGrupo(c.env, t, grupo);
+    }
+
     const i = await c.env.DB.prepare('SELECT * FROM inscripciones WHERE id = ?').bind(idIns).first();
     return inscripcionPublica(i);
+});
+
+/* Cuando ya no hay a quién esperar, el jugador decide: juega solo con lo que
+   pagó, o se le devuelve. Nadie más puede decidirlo por él. */
+ruta('POST', /^\/api\/torneos\/([\w-]+)\/jugar-solo$/, async (c, m) => {
+    const yo = await c.exigirUsuario();
+    const t = await c.env.DB.prepare('SELECT * FROM torneos WHERE id = ?').bind(m[1]).first();
+    if (!t) throw noEncontrado('Torneo no encontrado.');
+
+    const i = await c.env.DB.prepare('SELECT * FROM inscripciones WHERE torneo_id = ? AND usuario_id = ?')
+        .bind(t.id, yo.id).first();
+    if (!i) throw malaPeticion('No estás inscrito en este torneo.');
+    if (!i.buscando) throw malaPeticion('Ya tienes equipo: no hay nada que decidir.');
+
+    await c.env.DB.prepare("UPDATE inscripciones SET buscando = 0 WHERE id = ? AND buscando = 1").bind(i.id).run();
+    return { ok: true, nota: 'Juegas solo con lo que pagaste.' };
 });
 
 ruta('DELETE', /^\/api\/torneos\/([\w-]+)\/inscripciones$/, async (c, m) => {
@@ -511,27 +596,45 @@ ruta('POST', /^\/api\/torneos\/([\w-]+)\/resultados$/, async (c, m) => {
             .bind(fila.inscripcionId, t.id).first();
         if (!i) continue;
 
-        // Si ya se había pagado un premio, se descuenta antes de pagar el nuevo:
-        // corregir un resultado no puede regalar dinero.
-        const previo = await c.env.DB.prepare('SELECT * FROM resultados WHERE inscripcion_id = ?').bind(i.id).first();
-        if (previo?.premio > 0) {
-            lote.push(insertarMovimiento(c.env, uid('tx'), i.usuario_id, 'ajuste', -previo.premio,
-                { referencia: t.id, nota: 'Corrección de resultados — ' + t.nombre }));
-        }
+        /* El resultado es del EQUIPO, y un equipo puede ser gente que no se
+           conocía: cada uno tiene su propia fila. El premio se reparte entre
+           todos, porque jugaron todos. */
+        const { results: delGrupo } = await c.env.DB.prepare(
+            'SELECT * FROM inscripciones WHERE torneo_id = ? AND grupo = ? ORDER BY creado ASC')
+            .bind(t.id, i.grupo || i.id).all();
+        const filas = (delGrupo && delGrupo.length) ? delGrupo : [i];
 
         const puesto = Math.max(0, Number(fila.puesto) || 0);
         const kills = Math.max(0, Number(fila.kills) || 0);
+        const puntos = Math.max(0, Number(fila.puntos) || 0);
         const premio = kills * t.precio_kill + (puesto === 1 ? t.premio_ganador : 0);
 
-        lote.push(c.env.DB.prepare(`
-            INSERT INTO resultados (inscripcion_id, puesto, kills, puntos, premio) VALUES (?,?,?,?,?)
-            ON CONFLICT(inscripcion_id) DO UPDATE SET puesto=excluded.puesto, kills=excluded.kills,
-                puntos=excluded.puntos, premio=excluded.premio`)
-            .bind(i.id, puesto, kills, Math.max(0, Number(fila.puntos) || 0), premio));
+        /* Al dividir sobran pesos: se los lleva el primero que se inscribió.
+           Repartir de menos sería quedarse con dinero de alguien. */
+        const parte = Math.floor(premio / filas.length);
+        const resto = premio - parte * filas.length;
 
-        if (premio > 0) {
-            lote.push(insertarMovimiento(c.env, uid('tx'), i.usuario_id, 'premio', premio,
-                { metodo: 'Saldo', referencia: t.id, nota: `Puesto #${puesto} — ${t.nombre}` }));
+        for (const [n, f] of filas.entries()) {
+            const suyo = parte + (n === 0 ? resto : 0);
+
+            // Si ya se había pagado un premio, se descuenta antes de pagar el
+            // nuevo: corregir un resultado no puede regalar dinero.
+            const previo = await c.env.DB.prepare('SELECT * FROM resultados WHERE inscripcion_id = ?').bind(f.id).first();
+            if (previo?.premio > 0) {
+                lote.push(insertarMovimiento(c.env, uid('tx'), f.usuario_id, 'ajuste', -previo.premio,
+                    { referencia: t.id, nota: 'Corrección de resultados — ' + t.nombre }));
+            }
+
+            lote.push(c.env.DB.prepare(`
+                INSERT INTO resultados (inscripcion_id, puesto, kills, puntos, premio) VALUES (?,?,?,?,?)
+                ON CONFLICT(inscripcion_id) DO UPDATE SET puesto=excluded.puesto, kills=excluded.kills,
+                    puntos=excluded.puntos, premio=excluded.premio`)
+                .bind(f.id, puesto, kills, puntos, suyo));
+
+            if (suyo > 0) {
+                lote.push(insertarMovimiento(c.env, uid('tx'), f.usuario_id, 'premio', suyo,
+                    { metodo: 'Saldo', referencia: t.id, nota: `Puesto #${puesto} — ${t.nombre}` }));
+            }
         }
     }
     lote.push(c.env.DB.prepare("UPDATE torneos SET estado = 'finalizado' WHERE id = ?").bind(t.id));

@@ -10,14 +10,17 @@
    ============================================================ */
 
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import worker from './src/index.js';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
 const db = new DatabaseSync(':memory:');
-for (const archivo of ['0001_inicial.sql', '0002_cuentas.sql']) {
+/* Todas las migraciones, en orden. Leerlas de la carpeta y no de una lista
+   escrita a mano evita lo de siempre: añadir una tabla y que las pruebas
+   sigan corriendo contra la base de antes. */
+for (const archivo of readdirSync(join(aqui, 'migrations')).filter((f) => f.endsWith('.sql')).sort()) {
     db.exec(readFileSync(join(aqui, 'migrations', archivo), 'utf8'));
 }
 
@@ -263,6 +266,101 @@ comprobar(conNueva.estado === 200 && !conNueva.datos.debeCambiar, 'Entra con la 
 
 const cambioSinSaberla = await llamar('POST', '/api/auth/cambiar-pass', { nueva: 'otra-mas', actual: 'me-la-invento' }, conNueva.datos.token);
 comprobar(cambioSinSaberla.estado === 400, 'Sin la temporal, cambiar la clave exige saber la anterior');
+
+
+/* ============================================================
+   Jugadores sin compañero
+   ------------------------------------------------------------
+   Mucha gente no tiene con quién jugar un dúo. Ahora se puede
+   entrar solo: se paga la parte de uno y la plataforma junta a
+   los sueltos entre sí. Aquí se comprueba lo que cuesta dinero.
+   ============================================================ */
+console.log('\n── Jugadores sin compañero ──\n');
+
+const duo = (await llamar('POST', '/api/torneos', {
+    nombre: 'Dúo por kill', modo: 'duo', fecha: '2030-02-01T00:00:00Z', cupoMax: 2
+}, tokOrg)).datos;
+comprobar(duo.costo === 5000, 'El dúo cuesta 5.000 por jugador', duo.costo);
+
+const conSaldo = async (ffUid, nick) => {
+    const u = (await llamar('POST', '/api/auth/registro',
+        { ffUid, nick, whatsapp: '573000000000', pass: 'clave123' })).datos;
+    const r = (await llamar('POST', '/api/recargas', { monto: 20000 }, u.token)).datos;
+    await llamar('POST', '/api/wompi/eventos',
+        await firmarEvento({ id: 'p' + ffUid, status: 'APPROVED', amount_in_cents: 2000000, reference: r.movimiento.ref }));
+    return u.token;
+};
+
+const tokA = await conSaldo('4100000001', 'SoloA');
+const tokB = await conSaldo('4100000002', 'SoloB');
+
+/* Se inscribe sin compañero: paga SU parte, no el equipo entero */
+const solaA = await llamar('POST', `/api/torneos/${duo.id}/inscripciones`, {
+    buscarCompanero: true,
+    equipo: { nombre: 'SoloA', miembros: [{ nick: 'SoloA', uid: '4100000001' }] }
+}, tokA);
+comprobar(solaA.estado === 200, 'Se puede entrar a un dúo sin compañero', solaA.datos.error);
+comprobar((await saldo(tokA)) === 15000, 'Paga solo su parte: 5.000, no 10.000', await saldo(tokA));
+comprobar(solaA.datos.buscando === true, 'Queda marcado como que está buscando');
+
+/* No vale colarse con un equipo a medias sin decirlo */
+const aMedias = await llamar('POST', `/api/torneos/${duo.id}/inscripciones`, {
+    equipo: { nombre: 'Tramposo', miembros: [{ nick: 'Tramposo', uid: '4100000009' }] }
+}, tokB);
+comprobar(aMedias.estado === 400, 'Un equipo incompleto sin avisar se rechaza', aMedias.datos.error);
+
+/* Llega otro suelto: la plataforma los junta */
+const solaB = await llamar('POST', `/api/torneos/${duo.id}/inscripciones`, {
+    buscarCompanero: true,
+    equipo: { nombre: 'SoloB', miembros: [{ nick: 'SoloB', uid: '4100000002' }] }
+}, tokB);
+comprobar(solaB.estado === 200, 'El segundo suelto también entra', solaB.datos.error);
+comprobar((await saldo(tokB)) === 15000, 'Y también paga solo su parte', await saldo(tokB));
+
+const verDuo = (await llamar('GET', `/api/torneos/${duo.id}`, null, tokA)).datos;
+const deA = verDuo.participantes.find((p) => p.equipo.miembros[0].nick === 'SoloA');
+const deB = verDuo.participantes.find((p) => p.equipo.miembros[0].nick === 'SoloB');
+comprobar(deA.grupo === deB.grupo, 'Los dos sueltos quedan en el mismo equipo');
+comprobar(!deA.buscando && !deB.buscando, 'Y ya ninguno está buscando');
+comprobar(/SoloA \+ SoloB/.test(deA.equipo.nombre), 'El equipo se llama por sus dos jugadores', deA.equipo.nombre);
+comprobar(verDuo.inscritos === 1 && verDuo.jugadores === 2,
+    'Los dos ocupan UN cupo pero cuentan como dos jugadores',
+    `${verDuo.inscritos} cupo(s), ${verDuo.jugadores} jugador(es)`);
+
+/* El premio se reparte entre los dos, no se lo lleva el primero */
+await llamar('POST', `/api/torneos/${duo.id}/sala`, { salaId: '111', pass: '222' }, tokOrg);
+await llamar('POST', `/api/torneos/${duo.id}/resultados`,
+    { filas: [{ inscripcionId: deA.id, puesto: 1, kills: 4, puntos: 10 }] }, tokOrg);
+
+/* 4 kills x 3.000 + 15.000 al ganador = 27.000, a partes iguales */
+comprobar((await saldo(tokA)) === 15000 + 13500, 'Al primero le toca la mitad del premio', await saldo(tokA));
+comprobar((await saldo(tokB)) === 15000 + 13500, 'Y al compañero la otra mitad', await saldo(tokB));
+
+/* El que se queda sin pareja decide: jugar solo, o que le devuelvan */
+const duo2 = (await llamar('POST', '/api/torneos', {
+    nombre: 'Dúo sin gente', modo: 'duo', fecha: '2030-03-01T00:00:00Z', cupoMax: 8
+}, tokOrg)).datos;
+const tokC = await conSaldo('4100000003', 'SoloC');
+await llamar('POST', `/api/torneos/${duo2.id}/inscripciones`, {
+    buscarCompanero: true, equipo: { nombre: 'SoloC', miembros: [{ nick: 'SoloC', uid: '4100000003' }] }
+}, tokC);
+comprobar((await saldo(tokC)) === 15000, 'Entra solo y paga su parte', await saldo(tokC));
+
+const jugarSolo = await llamar('POST', `/api/torneos/${duo2.id}/jugar-solo`, null, tokC);
+comprobar(jugarSolo.estado === 200, 'Puede decidir jugar solo igual');
+const verDuo2 = (await llamar('GET', `/api/torneos/${duo2.id}`, null, tokC)).datos;
+comprobar(verDuo2.participantes[0].buscando === false, 'Y deja de aparecer como que busca');
+
+const yaNo = await llamar('POST', `/api/torneos/${duo2.id}/jugar-solo`, null, tokC);
+comprobar(yaNo.estado === 400, 'No puede decidirlo dos veces', yaNo.datos.error);
+
+/* O que le devuelvan lo suyo, que es solo lo suyo */
+const tokD = await conSaldo('4100000004', 'SoloD');
+await llamar('POST', `/api/torneos/${duo2.id}/inscripciones`, {
+    buscarCompanero: true, equipo: { nombre: 'SoloD', miembros: [{ nick: 'SoloD', uid: '4100000004' }] }
+}, tokD);
+await llamar('DELETE', `/api/torneos/${duo2.id}/inscripciones`, null, tokD);
+comprobar((await saldo(tokD)) === 20000, 'Cancelar le devuelve su parte, ni más ni menos', await saldo(tokD));
 
 
 /* ============================================================

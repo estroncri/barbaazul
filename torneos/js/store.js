@@ -448,10 +448,14 @@ window.Store = (function () {
 
             const requeridos = cupoPorModo[t.modo];
             const miembros = (equipo.miembros || []).filter((m) => m.nick && m.nick.trim());
-            if (miembros.length !== requeridos) {
-                throw new Error(`Este torneo es ${nombreModo[t.modo]}: necesitas ${requeridos} jugador(es).`);
+            const buscando = !!equipo.buscarCompanero && requeridos > 1;
+            if (buscando ? miembros.length !== 1 : miembros.length !== requeridos) {
+                throw new Error(buscando
+                    ? 'Si no tienes compañero, solo van tus datos.'
+                    : `Este torneo es ${nombreModo[t.modo]}: necesitas ${requeridos} jugador(es).`);
             }
-            const total = t.costo * requeridos;
+            // Cada quien paga por los suyos: el que entra solo paga una parte.
+            const total = t.costo * miembros.length;
             if (yo.saldo < total) {
                 throw new Error(`Saldo insuficiente. Necesitas ${fmtCOP(total)} y tienes ${fmtCOP(yo.saldo)}. Recarga en tu billetera.`);
             }
@@ -464,13 +468,47 @@ window.Store = (function () {
                 userId: yo.id,
                 equipo: { nombre: equipo.nombre || yo.nick, miembros },
                 estado: 'confirmada',
+                buscando,
                 creado: new Date().toISOString(),
                 resultado: null
             };
+            insc.grupo = insc.id;
+
+            /* En la demo también se junta a los sueltos, para que la pantalla
+               se comporte igual que con servidor. */
+            if (buscando) {
+                const hueco = inscripcionesDe(torneoId)
+                    .filter((i) => i.buscando && i.grupo !== insc.id)
+                    .find((i) => inscripcionesDe(torneoId)
+                        .filter((x) => x.grupo === i.grupo)
+                        .reduce((a, x) => a + x.equipo.miembros.length, 0) + miembros.length <= requeridos);
+                if (hueco) insc.grupo = hueco.grupo;
+            }
             db.inscripciones.push(insc);
-            if (inscripcionesDe(torneoId).length >= t.cupoMax) t.estado = 'lleno';
+
+            // Si el grupo quedó completo, deja de buscar y toma el nombre de todos.
+            const delGrupo = inscripcionesDe(torneoId).filter((i) => i.grupo === insc.grupo);
+            const cuantos = delGrupo.reduce((a, i) => a + i.equipo.miembros.length, 0);
+            if (cuantos >= requeridos) {
+                const nombre = delGrupo.flatMap((i) => i.equipo.miembros).map((x) => x.nick).join(' + ');
+                delGrupo.forEach((i) => { i.buscando = false; i.equipo.nombre = nombre; });
+            }
+
+            const equipos = new Set(inscripcionesDe(torneoId).map((i) => i.grupo || i.id));
+            if (equipos.size >= t.cupoMax) t.estado = 'lleno';
             save();
             return clone(insc);
+        },
+
+        jugarSolo: async (torneoId) => {
+            await wait(DELAY);
+            const yo = db.sesion ? usuarioPorId(db.sesion) : null;
+            const i = db.inscripciones.find((x) => x.torneoId === torneoId && x.userId === yo?.id);
+            if (!i) throw new Error('No estás inscrito en este torneo.');
+            if (!i.buscando) throw new Error('Ya tienes equipo: no hay nada que decidir.');
+            i.buscando = false;
+            save();
+            return { ok: true };
         },
 
         cancelarInscripcion: async (torneoId) => {

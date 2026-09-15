@@ -3,14 +3,14 @@
    completa sin desplegar nada:   node servidor-local.mjs            */
 import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import worker from './src/index.js';
 
 const aqui = dirname(fileURLToPath(import.meta.url));
 const db = new DatabaseSync(process.env.DB_RUTA || ':memory:');
-for (const m of ['0001_inicial.sql', '0002_cuentas.sql']) {
+for (const m of readdirSync(join(aqui, 'migrations')).filter((f) => f.endsWith('.sql')).sort()) {
     try { db.exec(readFileSync(join(aqui, 'migrations', m), 'utf8')); } catch (e) { /* ya aplicada */ }
 }
 

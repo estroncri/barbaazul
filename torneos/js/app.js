@@ -434,10 +434,11 @@
         const requeridos = S.cupoPorModo[t.modo];
         const finalizado = t.estado === 'finalizado';
 
+        const equipos = porEquipos(t.participantes);
         const participantes = finalizado
-            ? t.participantes.slice().sort((a, b) =>
+            ? equipos.slice().sort((a, b) =>
                 ((a.resultado && a.resultado.puesto) || 99) - ((b.resultado && b.resultado.puesto) || 99))
-            : t.participantes;
+            : equipos;
 
         const puedeInscribirse = t.estado === 'abierto' && !t.miInscripcion;
 
@@ -492,6 +493,18 @@
                                         : `<button class="btn btn-ghost" disabled>${etiquetaEstado(t.estado)}</button>`}
                                 <button class="btn btn-wa btn-sm" id="btnCompartir"><i class="bi bi-whatsapp"></i> Compartir</button>
                             </div>
+
+                            ${t.miInscripcion && t.miInscripcion.buscando ? `
+                            <div class="msg msg-warn mt" style="font-size:.84rem">
+                                <b>Te estamos buscando compañero.</b> Pagaste tu parte
+                                (${money(t.costo)}) y te falta ${requeridos - t.miInscripcion.equipo.miembros.length}.
+                                En cuanto entre otro jugador solo, quedan en el mismo equipo y lo ves aquí.
+                                <div class="flex mt">
+                                    <button class="btn btn-ghost btn-sm" id="btnJugarSolo">Prefiero jugar solo igual</button>
+                                </div>
+                                <div class="hint mt">Si al final no aparece nadie y tampoco quieres jugar solo,
+                                cancela y se te devuelve lo que pagaste.</div>
+                            </div>` : ''}
                         </div>
                     </div>
 
@@ -594,14 +607,16 @@
 
     function filaParticipante(p, i, t, yo) {
         const r = p.resultado;
-        const esMio = yo && p.userId === yo.id;
+        const esMio = yo && (p.userIds ? p.userIds.includes(yo.id) : p.userId === yo.id);
+        const faltan = S.cupoPorModo[t.modo] - p.equipo.miembros.length;
         const num = r && r.puesto ? r.puesto : i + 1;
         const clase = r && r.puesto && r.puesto <= 3 ? 'top' + r.puesto : '';
         return `<div class="p-item ${esMio ? 'yo' : ''}" style="animation: subir .5s ${Math.min(i * 0.05, 0.6)}s both">
             <div class="p-num ${clase}">${num}</div>
             <div class="p-info">
                 <div class="p-nick">${esc(p.equipo.nombre)} ${esMio ? '<span class="pill pill-abierto" style="font-size:.6rem">TÚ</span>' : ''}</div>
-                <div class="p-sub">Inscrito ${fechaCorta(p.creado)} · ${p.equipo.miembros.length} jug.</div>
+                <div class="p-sub">Inscrito ${fechaCorta(p.creado)} · ${p.equipo.miembros.length} jug.${
+                    p.buscando && faltan > 0 ? ` · <span style="color:var(--oro)">busca ${faltan} más</span>` : ''}</div>
                 ${t.modo !== 'solo' ? `<div class="miembros">${p.equipo.miembros.map((m) => `<span class="chip-mini">${esc(m.nick)}</span>`).join('')}</div>` : ''}
             </div>
             ${r ? `<div class="p-right">
@@ -627,6 +642,19 @@
         const bi = $('#btnInscribir');
         if (bi) bi.onclick = () => abrirInscripcion(id);
 
+        const bsolo = $('#btnJugarSolo');
+        if (bsolo) bsolo.onclick = async function () {
+            this.disabled = true;
+            try {
+                await S.jugarSolo(id);
+                toast('Listo: juegas solo con lo que pagaste.', 'ok');
+                render();
+            } catch (e) {
+                toast(e.message, 'err');
+                this.disabled = false;
+            }
+        };
+
         const bc = $('#btnCancelar');
         if (bc) bc.onclick = async () => {
             if (!confirm('¿Seguro que quieres cancelar tu inscripción? Te devolvemos el valor a tu saldo.')) return;
@@ -650,6 +678,36 @@
             window.open(waLink(txt), '_blank', 'noopener');
         };
     };
+
+    /* Una inscripción es la parte de un equipo que puso cada quien: los que
+       llegaron juntos son una fila, y dos sueltos que la plataforma emparejó
+       son dos. Para enseñarlos hay que volver a juntarlos, o el mismo equipo
+       aparecería dos veces. */
+    function porEquipos(lista) {
+        const equipos = new Map();
+        for (const p of lista || []) {
+            const g = p.grupo || p.id;
+            if (!equipos.has(g)) {
+                equipos.set(g, Object.assign({}, p, {
+                    equipo: { nombre: p.equipo.nombre, miembros: p.equipo.miembros.slice() },
+                    ids: [p.id], userIds: [p.userId]
+                }));
+                continue;
+            }
+            const e = equipos.get(g);
+            e.equipo.miembros = e.equipo.miembros.concat(p.equipo.miembros);
+            e.ids.push(p.id);
+            e.userIds.push(p.userId);
+            e.buscando = e.buscando || p.buscando;
+            // El premio del equipo es la suma de lo que cobró cada uno.
+            if (p.resultado) {
+                e.resultado = e.resultado
+                    ? Object.assign({}, e.resultado, { premio: (e.resultado.premio || 0) + (p.resultado.premio || 0) })
+                    : p.resultado;
+            }
+        }
+        return Array.from(equipos.values());
+    }
 
     /* Trae el nick de Free Fire a partir del ID mientras se escribe.
 
@@ -711,6 +769,7 @@
         const t = await S.torneo(torneoId);
         const req = S.cupoPorModo[t.modo];
         const total = t.costo * req;
+        let solo = false;                 // "no tengo compañero"
 
         const campos = [];
         for (let i = 0; i < req; i++) {
@@ -735,7 +794,16 @@
                 Tu saldo: <b>${money(yo.saldo)}</b>
             </div>
             <div id="inscErr"></div>
-            ${req > 1 ? `<div class="field">
+            ${req > 1 ? `
+            <label class="opcion-solo" id="marcoSolo">
+                <input type="checkbox" id="sinCompanero">
+                <span>
+                    <b>No tengo con quién</b>
+                    <span class="hint">Pagas solo tu parte (${money(t.costo)}) y te buscamos compañero
+                    entre los que también entren solos.</span>
+                </span>
+            </label>
+            <div class="field" id="campoEquipo">
                 <label>Nombre del equipo</label>
                 <input type="text" id="equipoNombre" placeholder="Ej: Los Tiburones" maxlength="24">
             </div>` : ''}
@@ -752,25 +820,46 @@
            se trae del juego con el ID. */
         for (let i = 1; i < req; i++) detectarNick(m, i, yo.region);
 
+        const casilla = $('#sinCompanero', m);
+        if (casilla) {
+            const btn = () => $('#confirmarInsc', m);
+            casilla.onchange = () => {
+                solo = casilla.checked;
+                /* Si viene solo, los campos de los demás sobran: los rellena
+                   luego la persona que le toque de compañero. */
+                for (let i = 1; i < req; i++) {
+                    const fila = $(`[data-nick="${i}"]`, m).closest('.row-2');
+                    if (fila) fila.style.display = solo ? 'none' : '';
+                }
+                const campoEquipo = $('#campoEquipo', m);
+                if (campoEquipo) campoEquipo.style.display = solo ? 'none' : '';
+                btn().textContent = `Pagar ${money(solo ? t.costo : total)} con mi saldo`;
+            };
+        }
+
         $('#confirmarInsc', m).onclick = async function () {
             const btn = this;
             const miembros = [];
-            for (let i = 0; i < req; i++) {
+            for (let i = 0; i < (solo ? 1 : req); i++) {
                 miembros.push({
                     nick: ($(`[data-nick="${i}"]`, m).value || '').trim(),
                     uid: ($(`[data-uid="${i}"]`, m).value || '').trim()
                 });
             }
-            const nombre = req > 1 ? ($('#equipoNombre', m).value || '').trim() : yo.nick;
+            const campoNombre = $('#equipoNombre', m);
+            const nombre = (!solo && campoNombre && campoNombre.value.trim()) || yo.nick;
             btn.disabled = true; btn.textContent = 'Procesando...';
             try {
-                await S.inscribirse(torneoId, { nombre, miembros });
+                const hecho = await S.inscribirse(torneoId, { nombre, miembros, buscarCompanero: solo });
                 cerrarModal();
-                toast('¡Listo! Ya estás en la lista de participantes', 'ok');
+                toast(hecho && hecho.buscando
+                    ? 'Listo. Te avisamos aquí mismo en cuanto te consigamos compañero.'
+                    : '¡Listo! Ya estás en la lista de participantes', 'ok');
                 render();
             } catch (e) {
                 $('#inscErr', m).innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>`;
-                btn.disabled = false; btn.textContent = `Pagar ${money(total)} con mi saldo`;
+                btn.disabled = false;
+                btn.textContent = `Pagar ${money(solo ? t.costo : total)} con mi saldo`;
             }
         };
     }
@@ -2031,6 +2120,9 @@
             b.onclick = async () => {
                 const t = await S.torneo(b.dataset.result);
                 if (!t.participantes.length) return toast('Ese torneo no tiene inscritos', 'err');
+                /* Un equipo, una línea: si dos sueltos juegan juntos, sus kills
+                   son los del equipo y el premio se reparte solo. */
+                const equipos = porEquipos(t.participantes);
                 const m = modal('Resultados — ' + t.nombre, `
                     <div class="msg msg-info" style="font-size:.84rem">
                         El premio se calcula solo: <b>${money(t.precioKill || 0)} por kill</b>${t.premioGanador
@@ -2040,7 +2132,7 @@
                     <div id="resMsg"></div>
                     <div class="tabla-wrap"><table>
                         <thead><tr><th>Equipo</th><th>Puesto</th><th>Kills</th><th>Puntos</th><th>Premio</th></tr></thead>
-                        <tbody>${t.participantes.map((p) => `<tr>
+                        <tbody>${equipos.map((p) => `<tr>
                             <td><b>${esc(p.equipo.nombre)}</b></td>
                             <td><input type="number" data-r-puesto="${p.id}" value="${p.resultado ? p.resultado.puesto : ''}" min="1" style="width:74px;padding:8px"></td>
                             <td><input type="number" data-r-kills="${p.id}" value="${p.resultado ? p.resultado.kills : ''}" min="0" style="width:74px;padding:8px"></td>
@@ -2053,7 +2145,7 @@
                 // El premio se muestra mientras el organizador escribe, para que
                 // vea lo que va a pagar antes de guardar.
                 const recalcularPremios = () => {
-                    t.participantes.forEach((p) => {
+                    equipos.forEach((p) => {
                         const kills = Number($(`[data-r-kills="${p.id}"]`, m).value) || 0;
                         const puesto = Number($(`[data-r-puesto="${p.id}"]`, m).value) || 0;
                         const premio = kills * (t.precioKill || 0) + (puesto === 1 ? (t.premioGanador || 0) : 0);
@@ -2065,7 +2157,7 @@
 
                 $('#resOk', m).onclick = async function () {
                     this.disabled = true; this.textContent = 'Guardando...';
-                    const filas = t.participantes.map((p) => ({
+                    const filas = equipos.map((p) => ({
                         inscripcionId: p.id,
                         puesto: $(`[data-r-puesto="${p.id}"]`, m).value,
                         kills: $(`[data-r-kills="${p.id}"]`, m).value,
