@@ -29,6 +29,44 @@
 
     const initials = (nick) => String(nick || '?').trim().slice(0, 2).toUpperCase();
 
+    /* ¿Qué hay al otro lado cuando el jugador pulsa "recargar"? Se le pregunta
+       al servidor una sola vez y se recuerda, porque de eso depende lo único
+       que el jugador necesita saber antes de poner su tarjeta: si el dinero
+       que va a mover es de verdad. */
+    let PASARELA = null;
+    async function pasarela() {
+        if (PASARELA) return PASARELA;
+        if (S.modo !== 'api' || !S.pasarela) return (PASARELA = { wompi: false });
+        try { PASARELA = await S.pasarela(); } catch (e) { PASARELA = { wompi: false }; }
+        return PASARELA;
+    }
+    const enPruebas = (p) => /^pub_test/.test(String((p && p.llavePublica) || ''));
+
+    function avisoDePagos(p) {
+        if (p && p.wompi && enPruebas(p)) {
+            return `<div class="msg msg-warn" style="font-size:.78rem;margin:0">
+                <b>Modo de pruebas.</b> Los pagos van a Wompi pero <b>no mueven dinero real</b>:
+                nadie cobra y nadie paga. Para probar, tarjeta <span class="mono">4242 4242 4242 4242</span>,
+                cualquier fecha futura y cualquier CVC.
+            </div>`;
+        }
+        if (p && p.wompi) {
+            return `<div class="msg msg-ok" style="font-size:.78rem;margin:0">
+                Los pagos son <b>reales</b>: el cobro lo hace Wompi con tu tarjeta o tu Nequi,
+                y el saldo te aparece solo cuando el banco confirma.
+            </div>`;
+        }
+        if (S.modo === 'api') {
+            return `<div class="msg msg-warn" style="font-size:.78rem;margin:0">
+                Todavía no hay pasarela conectada: cada recarga queda <b>en revisión</b> hasta que
+                el organizador confirme que el pago llegó.
+            </div>`;
+        }
+        return `<div class="msg msg-warn" style="font-size:.78rem;margin:0">
+            Estás viendo la demo: las recargas son <b>simuladas</b> y no se mueve dinero real.
+        </div>`;
+    }
+
     function toast(texto, tipo) {
         const zone = $('#toasts');
         const el = document.createElement('div');
@@ -1069,11 +1107,7 @@
                             4. Pides el retiro y te lo pagamos al número o cuenta que registres.
                         </p>
                         <div class="divider"></div>
-                        <div class="msg msg-warn" style="font-size:.78rem;margin:0">
-                            En esta demo las recargas son <b>simuladas</b> (no se mueve dinero real).
-                            Para cobros y pagos de verdad hay que conectar una pasarela — está explicado
-                            en <span class="mono">ARQUITECTURA.md</span>.
-                        </div>
+                        ${avisoDePagos(await pasarela())}
                     </div>
                     <div class="card mt">
                         <h3 class="mb">¿Problemas con un pago?</h3>
@@ -1091,8 +1125,11 @@
         const cfg = S.config();
 
         $('#btnRecargar').onclick = () => {
+            const conPasarela = !!(PASARELA && PASARELA.wompi);
             const m = modal('Recargar saldo', `
                 <div id="recMsg"></div>
+                ${avisoDePagos(PASARELA)}
+                <div class="mb"></div>
                 <div class="field">
                     <label>¿Cuánto vas a recargar?</label>
                     <input type="number" id="recMonto" value="10000" min="1000" step="1000">
@@ -1100,6 +1137,10 @@
                 <div class="flex mb">
                     ${[5000, 10000, 20000, 50000].map((v) => `<button class="btn btn-ghost btn-sm" data-monto="${v}">${money(v)}</button>`).join('')}
                 </div>
+                ${conPasarela ? `
+                <div class="hint mb">El método de pago lo eliges en Wompi: tarjeta, Nequi, PSE o
+                    Bancolombia. Cuando el banco confirme, el saldo te aparece solo.</div>
+                ` : `
                 <div class="field">
                     <label>Método</label>
                     <select id="recMetodo">${cfg.metodosPago.map((p) => `<option>${esc(p)}</option>`).join('')}</select>
@@ -1108,10 +1149,11 @@
                     <label>Referencia del pago${S.modo === 'api' ? '' : ' (opcional)'}</label>
                     <input type="text" id="recRef" placeholder="Nº de comprobante de Nequi">
                     <div class="hint">${S.modo === 'api'
-                        ? 'La recarga queda en revisión hasta que el organizador confirme que el pago llegó. Cuando haya pasarela conectada, eso lo confirmará el banco solo.'
-                        : 'Cuando haya pasarela conectada, este paso lo confirma el banco automáticamente.'}</div>
+                        ? 'La recarga queda en revisión hasta que el organizador confirme que el pago llegó.'
+                        : 'En la demo el saldo entra al instante.'}</div>
                 </div>
-                <button class="btn btn-fire btn-block" id="recOk">Confirmar recarga</button>
+                `}
+                <button class="btn btn-fire btn-block" id="recOk">${conPasarela ? 'Ir a pagar' : 'Confirmar recarga'}</button>
             `);
             $$('[data-monto]', m).forEach((b) => {
                 b.onclick = () => { $('#recMonto', m).value = b.dataset.monto; };
@@ -1119,7 +1161,9 @@
             $('#recOk', m).onclick = async function () {
                 this.disabled = true; this.textContent = 'Procesando pago...';
                 try {
-                    const r = await S.recargar($('#recMonto', m).value, $('#recMetodo', m).value, $('#recRef', m).value.trim());
+                    const r = await S.recargar($('#recMonto', m).value,
+                        $('#recMetodo', m) ? $('#recMetodo', m).value : 'Wompi',
+                        $('#recRef', m) ? $('#recRef', m).value.trim() : '');
 
                     // Con pasarela conectada, el jugador se va a pagar a Wompi y
                     // vuelve solo; el saldo lo acredita el aviso que Wompi manda
@@ -1137,7 +1181,8 @@
                     render();
                 } catch (e) {
                     $('#recMsg', m).innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>`;
-                    this.disabled = false; this.textContent = 'Confirmar recarga';
+                    this.disabled = false;
+                    this.textContent = conPasarela ? 'Ir a pagar' : 'Confirmar recarga';
                 }
             };
         };
