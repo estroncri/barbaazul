@@ -732,53 +732,106 @@ ruta('POST', /^\/api\/admin\/verificaciones\/([\w-]+)$/, async (c, m) => {
    el navegador no puede (CORS), la llave del proveedor no puede quedar a
    la vista, y si cada jugador consultara desde su casa el proveedor
    acabaría bloqueando por IP. */
-const PROVEEDORES = {
-    jinix: 'https://free-ff-api-src-5plp.onrender.com/api/v1/account?region={region}&uid={uid}',
-    glob:  'https://glob-info2.vercel.app/info?uid={uid}'
+export const PROVEEDORES = {
+    jinix: { url: 'https://free-ff-api-src-5plp.onrender.com/api/v1/account?region={region}&uid={uid}', porRegion: true },
+    glob:  { url: 'https://glob-info2.vercel.app/info?uid={uid}', porRegion: false }
 };
+
+/* Las regiones donde Garena reparte las cuentas. La de Colombia es "sac"
+   (Sudamérica), pero mucha gente tiene la cuenta en "us" o "br" sin saberlo:
+   por eso no basta con preguntar por una sola. */
+export const REGIONES = ['sac', 'us', 'br', 'na', 'sg', 'id', 'ind', 'th', 'vn', 'tw', 'me', 'eu', 'pk', 'cis', 'bd'];
+
+const tieneCuenta = (d) => !!(d && (d.basicInfo || d.account || d.AccountInfo || d.nickname
+    || (d.data && (d.data.basicInfo || d.data.nickname))));
+
+/* Un intento contra un proveedor. Devuelve los datos, o por qué no. */
+export async function intentarPerfil(plantilla, uidFF, region, env) {
+    const destino = plantilla
+        .replace('{uid}', encodeURIComponent(uidFF))
+        .replace('{region}', encodeURIComponent(String(region).toUpperCase()));
+
+    const cabeceras = { Accept: 'application/json', 'User-Agent': 'TorneosFF/1.0' };
+    if (env.FF_API_KEY) {
+        cabeceras.Authorization = 'Bearer ' + env.FF_API_KEY;
+        cabeceras['x-api-key'] = env.FF_API_KEY;
+    }
+
+    let r;
+    try {
+        r = await fetch(destino, { headers: cabeceras, signal: AbortSignal.timeout(7000) });
+    } catch (e) {
+        return { ok: false, porque: 'no respondió a tiempo' };
+    }
+    if (!r.ok) return { ok: false, porque: 'contestó ' + r.status };
+
+    let datos;
+    try { datos = await r.json(); } catch (e) { return { ok: false, porque: 'respuesta ilegible' }; }
+
+    // Algunos contestan 200 con el error dentro
+    if (!tieneCuenta(datos)) return { ok: false, porque: 'no tiene esa cuenta' };
+    return { ok: true, datos };
+}
+
+/* Busca el perfil donde sea. Orden pensado para tardar poco en el caso
+   normal y aun así encontrar las cuentas raras:
+
+     1. El proveedor configurado, con la región que dijo el jugador.
+     2. El proveedor que no necesita región: de un golpe cubre todas.
+     3. El resto de regiones, una por una.
+
+   Se para en cuanto uno contesta. */
+export async function buscarPerfil(uidFF, region, env) {
+    const intentos = [];
+    const principal = env.FF_API_URL || PROVEEDORES[env.FF_PROVEEDOR]?.url || PROVEEDORES.jinix.url;
+
+    intentos.push({ plantilla: principal, region, quien: env.FF_PROVEEDOR || 'principal' });
+
+    for (const [nombre, prov] of Object.entries(PROVEEDORES)) {
+        if (!prov.porRegion && prov.url !== principal) {
+            intentos.push({ plantilla: prov.url, region, quien: nombre });
+        }
+    }
+
+    for (const otra of REGIONES) {
+        if (otra !== region) intentos.push({ plantilla: principal, region: otra, quien: (env.FF_PROVEEDOR || 'principal') + ':' + otra });
+    }
+
+    const fallos = [];
+    for (const intento of intentos) {
+        const r = await intentarPerfil(intento.plantilla, uidFF, intento.region, env);
+        if (r.ok) return { ok: true, datos: r.datos, quien: intento.quien, region: intento.region, fallos };
+        fallos.push(`${intento.quien}: ${r.porque}`);
+    }
+    return { ok: false, fallos };
+}
 
 ruta('GET', /^\/api\/perfil$/, async (c) => {
     const uidFF = String(c.url.searchParams.get('uid') || '').replace(/\D/g, '');
     const region = String(c.url.searchParams.get('region') || 'us').toLowerCase().slice(0, 4);
     if (!/^\d{6,14}$/.test(uidFF)) throw malaPeticion('El ID de Free Fire son solo números (entre 6 y 14 dígitos).');
 
-    const plantilla = c.env.FF_API_URL || PROVEEDORES[c.env.FF_PROVEEDOR] || '';
-    if (!plantilla) throw new ErrorAPI(503, 'El servidor no tiene configurado el servicio de perfiles.');
-
-    // Un mismo ID consultado varias veces no golpea al proveedor cada vez
-    const claveCache = new Request(`https://cache.torneosff/perfil/${region}/${uidFF}`);
+    /* Un mismo ID consultado varias veces no golpea al proveedor cada vez. La
+       caché no lleva región: da igual en cuál se encontró, la cuenta es la
+       misma y así el segundo jugador que pregunte lo tiene al instante. */
+    const claveCache = new Request(`https://cache.torneosff/perfil/${uidFF}`);
     const cache = caches.default;
     const guardado = await cache.match(claveCache);
     if (guardado) return guardado.json();
 
-    const destino = plantilla.replace('{uid}', encodeURIComponent(uidFF)).replace('{region}', encodeURIComponent(region.toUpperCase()));
-    const cabeceras = { Accept: 'application/json', 'User-Agent': 'TorneosFF/1.0' };
-    if (c.env.FF_API_KEY) {
-        cabeceras.Authorization = 'Bearer ' + c.env.FF_API_KEY;
-        cabeceras['x-api-key'] = c.env.FF_API_KEY;
+    const r = await buscarPerfil(uidFF, region, c.env);
+    if (!r.ok) {
+        /* Los motivos van a los registros, no al jugador: a él solo le sirve
+           saber que escriba el nick a mano. */
+        console.log(`perfil ${uidFF}: ` + r.fallos.join(' | '));
+        throw noEncontrado('No encontramos ninguna cuenta con ese ID. Revisa el número, o escribe el nick a mano.');
     }
 
-    let r;
-    try {
-        r = await fetch(destino, { headers: cabeceras, signal: AbortSignal.timeout(12000) });
-    } catch (e) {
-        throw new ErrorAPI(504, 'El servicio de perfiles no respondió a tiempo. Puedes escribir tu nick a mano.');
-    }
-    if (r.status === 404) throw noEncontrado('No encontramos ninguna cuenta con ese ID en esa región.');
-    if (!r.ok) throw new ErrorAPI(502, `El servicio de perfiles respondió ${r.status}. Puedes escribir tu nick a mano.`);
-
-    let datos;
-    try { datos = await r.json(); } catch (e) { throw new ErrorAPI(502, 'El servicio de perfiles devolvió una respuesta ilegible.'); }
-
-    // Algunos devuelven 200 con el error dentro
-    const tieneCuenta = datos && (datos.basicInfo || datos.account || datos.AccountInfo || datos.nickname);
-    if (!tieneCuenta) throw noEncontrado('No encontramos ninguna cuenta con ese ID en esa región.');
-
-    const respuesta = new Response(JSON.stringify(datos), {
+    const respuesta = new Response(JSON.stringify(r.datos), {
         headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' }
     });
     c.espera(cache.put(claveCache, respuesta.clone()));
-    return datos;
+    return r.datos;
 });
 
 /* ---------- Público ---------- */

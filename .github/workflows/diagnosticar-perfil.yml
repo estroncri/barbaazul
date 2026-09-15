@@ -1,0 +1,28 @@
+# ¿Por qué la plataforma no detecta una cuenta de Free Fire?
+#
+# Actions → Diagnosticar una cuenta → Run workflow, y pones el ID.
+# Pregunta a todos los servicios de perfiles, en todas las regiones, y
+# enseña qué contestó cada uno. No toca la plataforma ni la base de datos.
+
+name: Diagnosticar una cuenta
+
+on:
+  workflow_dispatch:
+    inputs:
+      uid:
+        description: 'ID de Free Fire'
+        required: true
+
+jobs:
+  diagnosticar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preguntar a todos los servicios
+        working-directory: torneos/servidor/worker
+        env:
+          FF_API_KEY: ${{ secrets.FF_API_KEY }}
+        run: node diagnosticar-perfil.mjs "${{ inputs.uid }}"
