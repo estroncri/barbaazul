@@ -717,8 +717,10 @@
         const creada = p.creada
             ? new Date(p.creada).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })
             : null;
+        const inventado = p.fuente === 'simulado';
         return `
-        <div class="ff-perfil">
+        <div class="ff-perfil ${inventado ? 'ff-ejemplo' : ''}">
+            ${inventado ? `<div class="ff-cinta"><i class="bi bi-cone-striped"></i> Ejemplo · no es una cuenta real</div>` : ''}
             <div class="ff-perfil-top">
                 <div class="ff-ava">${p.avatarUrl
                     ? `<img src="${esc(p.avatarUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:14px">`
@@ -743,12 +745,12 @@
                 ${dato('Gremio', p.gremio ? `${p.gremio.nombre}${p.gremio.nivel ? ' · Nv ' + p.gremio.nivel : ''}` : '', 'bi-people-fill')}
                 ${dato('Cuenta creada', creada ? `${creada}${F.antiguedad(p.creada) ? ' (' + F.antiguedad(p.creada) + ')' : ''}` : '', 'bi-calendar-check')}
             </div>
-            ${op.pie === false ? '' : `<div class="ff-fuente">
+            ${op.pie === false ? '' : `<div class="ff-fuente ${inventado ? 'aviso' : ''}">
                 ${p.fuente === 'api'
                     ? `<i class="bi bi-broadcast"></i> Datos traídos del servidor de Free Fire${p.deCache ? ' (guardados hace un momento)' : ''}`
                     : p.fuente === 'manual'
                         ? `<i class="bi bi-pencil"></i> Datos escritos a mano`
-                        : `<i class="bi bi-cone-striped"></i> Datos de demostración — falta conectar el proveedor de perfiles`}
+                        : `<i class="bi bi-cone-striped"></i> Números inventados para mostrar el diseño. Falta conectar el servicio de perfiles.`}
             </div>`}
         </div>`;
     }
@@ -756,12 +758,25 @@
     function pintarPaso2() {
         const p = regPerfil;
         $('#s2').classList.add('on');
+        const inventado = p.fuente === 'simulado';
+        const aMano = p.fuente === 'manual' || inventado;
         $('#regCard').innerHTML = `
+            ${inventado ? `<div class="msg msg-warn">
+                <b>Todavía no está conectado el servicio que lee los datos de Free Fire</b>,
+                así que no podemos traer tu perfil de verdad. El nick y los números de abajo
+                están inventados: no son tu cuenta.<br><br>
+                Escribe tu nick tal como aparece en el juego y sigue. El día que conectemos el
+                servicio, tus datos se llenan solos con tu ID <b class="mono">${esc(p.uid)}</b>.
+            </div>` : ''}
             ${tarjetaPerfilFF(p)}
-            ${p.fuente === 'manual' ? `<div class="field">
+            ${aMano ? `<div class="field">
                 <label>Tu nick exacto en el juego</label>
-                <input type="text" id="regNickManual" placeholder="Como aparece en Free Fire">
-            </div>` : `<button class="btn btn-ghost btn-block btn-sm mb" id="btnOtroId">
+                <input type="text" id="regNickManual" placeholder="Como aparece en Free Fire" autocomplete="off">
+                <div class="hint">Tiene que ser idéntico al del juego: es con lo que te identificamos en la partida.</div>
+            </div>
+            <button class="btn btn-ghost btn-block btn-sm mb" id="btnOtroId">
+                <i class="bi bi-arrow-left"></i> Cambiar de ID</button>`
+            : `<button class="btn btn-ghost btn-block btn-sm mb" id="btnOtroId">
                 <i class="bi bi-arrow-left"></i> Ese no soy yo, cambiar de ID</button>`}
             <div class="msg msg-info">
                 <b>Falta un paso para verificarte:</b> pon el código <b class="mono">${esc(p.codigoVerificacion)}</b>
@@ -806,7 +821,10 @@
                 const nickFinal = nickManual ? nickManual.value.trim() : p.nick;
                 if (!nickFinal) return msgErr('Escribe tu nick exacto del juego.');
                 const u = await S.registrar({
-                    ffUid: p.uid || p.ffUid, nick: nickFinal, nivel: p.nivel, region: p.region, perfil: p,
+                    ffUid: p.uid || p.ffUid, nick: nickFinal,
+                    nivel: p.fuente === 'api' ? p.nivel : 0,
+                    region: p.region,
+                    perfil: p.fuente === 'api' ? p : null,
                     email: $('#regEmail').value.trim(), whatsapp: $('#regWa').value.trim(), pass
                 });
                 toast('Cuenta creada. ¡Bienvenido, ' + u.nick + '!', 'ok');
@@ -988,7 +1006,7 @@
                     <div class="ff-ava" style="width:68px;height:68px;flex:0 0 68px;font-size:2rem">${esc(initials(yo.nick))}</div>
                     <div style="min-width:0;flex:1">
                         <h2 style="margin-bottom:2px">${esc(yo.nick)}</h2>
-                        <div class="muted">ID ${esc(yo.ffUid)} · Nivel ${yo.nivel} · ${esc(window.PerfilFF.nombreRegion(yo.region))}</div>
+                        <div class="muted">ID ${esc(yo.ffUid)}${yo.nivel ? ' · Nivel ' + yo.nivel : ''} · ${esc(window.PerfilFF.nombreRegion(yo.region))}</div>
                         <div class="flex mt" style="gap:6px">
                             ${yo.verificado ? `<span class="pill pill-abierto"><i class="bi bi-patch-check-fill"></i> Cuenta verificada</span>` : `<span class="pill pill-lleno">Sin verificar</span>`}
                             ${yo.rol === 'admin' ? `<span class="pill pill-escuadra">Admin</span>` : ''}
@@ -1052,9 +1070,13 @@
             this.disabled = true; this.innerHTML = '<i class="bi bi-hourglass-split"></i> Consultando...';
             try {
                 const u = await S.actualizarPerfilFF();
+                if (u.perfil && u.perfil.fuente === 'api') {
+                    toast('Datos actualizados desde el juego', 'ok');
+                    render();   // el nick y el nivel de la cabecera también cambian
+                    return;
+                }
                 $('#ffPerfilBox').innerHTML = tarjetaPerfilFF(u.perfil);
-                toast('Datos actualizados desde el juego', 'ok');
-                pintarNav();
+                toast('Falta conectar el servicio de perfiles: lo que ves es un ejemplo', 'err');
             } catch (e) {
                 toast(e.message, 'err');
             }

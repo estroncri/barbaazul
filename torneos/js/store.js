@@ -282,7 +282,7 @@ window.Store = (function () {
                 throw new Error('Escribe un número de WhatsApp válido (con indicativo).');
             }
             const u = {
-                id: uid('u'), ffUid: String(ffUid), nick, nivel: nivel || 1,
+                id: uid('u'), ffUid: String(ffUid), nick, nivel: nivel || 0,
                 region: region || 'us',
                 perfil: perfil || null,          // datos del juego tal como llegaron
                 email: email || '',
@@ -301,9 +301,13 @@ window.Store = (function () {
             const yo = db.sesion ? usuarioPorId(db.sesion) : null;
             if (!yo) throw new Error('Inicia sesión.');
             const p = await window.PerfilFF.consultar(yo.ffUid, yo.region, { sinCache: true });
+            // Sin servicio conectado los datos son inventados: se muestran como ejemplo,
+            // pero nunca pisan el nick que el jugador escribió.
             yo.perfil = p;
-            yo.nick = p.nick || yo.nick;
-            yo.nivel = p.nivel || yo.nivel;
+            if (p.fuente === 'api') {
+                yo.nick = p.nick || yo.nick;
+                yo.nivel = p.nivel || yo.nivel;
+            }
             save();
             return clone(yo);
         },

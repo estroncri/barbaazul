@@ -363,6 +363,14 @@ select { appearance: none; background-image: linear-gradient(transparent, transp
     background: rgba(5,7,15,.75); border-top: 1px solid var(--line);
 }
 
+.ff-perfil.ff-ejemplo { box-shadow: inset 0 0 0 1px rgba(255,209,102,.45); opacity: .82; }
+.ff-cinta {
+    background: rgba(255,209,102,.16); color: #ffe6ad; text-align: center;
+    font-size: .7rem; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase;
+    padding: 7px 12px; border-bottom: 1px solid rgba(255,209,102,.3);
+}
+.ff-fuente.aviso { color: #ffe6ad; background: rgba(255,209,102,.1); }
+
 /* Perfil FF encontrado */
 .ff-card {
     display: flex; gap: 14px; align-items: center; padding: 15px;
