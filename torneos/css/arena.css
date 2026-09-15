@@ -333,6 +333,33 @@ select { appearance: none; background-image: linear-gradient(transparent, transp
 }
 .step.on { background: linear-gradient(90deg, var(--fire), var(--fire-2)); }
 
+/* Tarjeta de perfil de Free Fire */
+.ff-perfil {
+    border-radius: var(--r-md); overflow: hidden; margin-bottom: 16px;
+    background: linear-gradient(150deg, rgba(0,168,232,.14), rgba(255,106,26,.08));
+    box-shadow: inset 0 0 0 1px rgba(0,168,232,.3);
+}
+.ff-perfil-top { display: flex; gap: 13px; align-items: center; padding: 15px; }
+.ff-nick { font-family: 'Teko', sans-serif; font-size: 1.7rem; line-height: 1; letter-spacing: .5px; }
+.ff-nivel { text-align: center; flex: 0 0 auto; padding-left: 8px; }
+.ff-nivel-num { font-family: 'Teko', sans-serif; font-size: 2.1rem; line-height: 1; color: var(--fire-2); }
+.ff-datos {
+    display: grid; grid-template-columns: 1fr; gap: 1px;
+    background: var(--line); border-top: 1px solid var(--line);
+}
+@media (min-width: 480px) { .ff-datos { grid-template-columns: 1fr 1fr; } }
+.ff-dato {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 15px; background: rgba(5,7,15,.55); font-size: .82rem;
+}
+.ff-dato b { text-align: right; white-space: normal; overflow-wrap: anywhere; }
+.ff-dato > .muted { white-space: nowrap; flex: 0 0 auto; }
+.ff-dato .muted i { color: var(--azul-2); margin-right: 5px; }
+.ff-fuente {
+    padding: 9px 15px; font-size: .72rem; color: var(--txt-3);
+    background: rgba(5,7,15,.75); border-top: 1px solid var(--line);
+}
+
 /* Perfil FF encontrado */
 .ff-card {
     display: flex; gap: 14px; align-items: center; padding: 15px;

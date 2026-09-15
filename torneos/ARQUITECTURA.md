@@ -6,32 +6,83 @@ Aquí está el detalle y el camino para armarlo.
 
 ---
 
-## 1. "Iniciar sesión con la cuenta de Free Fire"
+## 1. Detectar el perfil por ID (y por qué eso no es "iniciar sesión")
 
-**Esto no existe.** Garena no ofrece un "Login con Free Fire" para plataformas de terceros
-(no hay OAuth público, como sí lo hay con Google o Facebook), ni una API oficial para consultar
-el perfil de un jugador. Todo lo que circula por ahí son APIs no oficiales que raspan datos:
-se caen sin aviso, mienten y van en contra de los términos de servicio de Garena.
+La plataforma ya trae los datos del jugador a partir de su ID, como las páginas del estilo
+`freefiremania.com.br/cuenta/<ID>`: nick, nivel, EXP, likes, región, rango BR y CS, honor,
+gremio y fecha de creación de la cuenta.
 
-**Nunca** le pidas al jugador su contraseña de Free Fire ni su cuenta de Google/Facebook
-vinculada. Aparte de ser peligroso, te convierte a ti en el responsable si le roban la cuenta.
+Ahora bien, hay que separar dos cosas que se parecen pero no son lo mismo:
 
-### Lo que sí se puede hacer (es lo que implementa la demo)
+| | Qué hace | ¿Sirve para autenticar? |
+|---|---|---|
+| **Consultar por ID** | Muestra los datos públicos de cualquier cuenta | **No.** Cualquiera puede escribir el ID de otro |
+| **Verificar con código** | Confirma que quien registra es el dueño | **Sí** |
 
-1. El jugador escribe su **ID de Free Fire** (el número del perfil, que es público).
-2. La plataforma le da un **código corto** (ej. `AZ-4821`).
-3. El jugador pone ese código en su **biografía del juego** y manda una captura del perfil.
-4. Un admin (o una revisión con OCR) confirma que el código y el ID coinciden → cuenta verificada.
-5. La sesión en la plataforma es propia: ID de Free Fire + contraseña, o un código por WhatsApp.
+Por eso el registro tiene los dos pasos: primero se detectan los datos (para que el jugador vea
+su nick y confirme que es él, y para que la lista de participantes muestre información real), y
+después se le pide poner un código tipo `AZ-2443` en su biografía del juego y mandar la captura.
+Sin ese segundo paso, cualquiera podría inscribirse haciéndose pasar por otro.
 
-Es el mismo método que usan las plataformas serias de torneos. Se hace una sola vez por jugador
-y deja una cuenta confiable: el ID queda amarrado a una persona y a un número de WhatsApp.
+**Garena no publica una API oficial.** Esas páginas consultan servicios no oficiales que se caen,
+cambian sin avisar y bloquean por IP. Por eso el diseño aquí es:
 
-**Extra de confianza:** exigir que el nick registrado sea idéntico al del juego durante la
-partida, y guardar el historial de torneos, kills y pagos de cada jugador (la demo ya lo muestra
-en el perfil). Eso es lo que hace que la gente confíe: un historial público, no un logo.
+```
+Navegador  →  TU endpoint (Cloudflare Worker)  →  proveedor de datos
+```
 
----
+El navegador nunca llama al proveedor directamente. Las razones son prácticas:
+
+- **CORS:** esos servicios no autorizan que los llame una página ajena; el navegador bloquea la respuesta.
+- **Bloqueo por IP:** si cada jugador consulta desde su casa, empiezan a caer bloqueos sin remedio.
+- **La API key** quedaría a la vista de cualquiera en el código de la página.
+- **Si el proveedor cambia**, se toca un solo archivo y nadie más se entera.
+
+### Archivos que hacen esto
+
+| Archivo | Para qué |
+|---------|----------|
+| `js/perfil-ff.js` | Consulta, normaliza la respuesta (cada proveedor nombra distinto los campos), cachea 10 minutos, corta a los 12 segundos y da mensajes de error entendibles |
+| `servidor/perfil-ff.worker.js` | El intermediario, para Cloudflare Workers (gratis hasta 100.000 consultas al día): CORS, caché de 5 minutos, límite de 20 consultas por minuto por IP |
+| `servidor/mock-perfil.js` | Proveedor de mentiras para probar todo el flujo local sin contratar nada |
+
+### Cómo activarlo
+
+**1. Probar en local** (sin contratar nada):
+
+```bash
+node torneos/servidor/mock-perfil.js     # queda en http://localhost:8787/perfil
+```
+
+y en `js/store.js` poner `perfilApi: 'http://localhost:8787/perfil'`.
+
+**2. En producción:**
+
+```bash
+npm install -g wrangler
+wrangler init arena-perfil-ff            # elegir "Hello World Worker"
+# pegar servidor/perfil-ff.worker.js en src/index.js
+wrangler secret put FF_API_URL           # https://proveedor.com/api?uid={uid}&region={region}
+wrangler secret put FF_API_KEY           # si el proveedor pide llave
+wrangler deploy
+```
+
+Después, en `js/store.js`:
+
+```js
+perfilApi: 'https://arena-perfil-ff.tu-usuario.workers.dev/perfil',
+```
+
+Mientras `perfilApi` esté vacío, la plataforma sigue funcionando con datos de demostración y lo
+dice en pantalla ("Datos de demostración — falta conectar el proveedor de perfiles"), así que
+nunca se hace pasar un dato inventado por real.
+
+**Sobre el proveedor:** son servicios de terceros que consultan los servidores de Garena sin
+convenio con ellos. Hay que contar con que alguno se caiga y toque cambiarlo; por eso el
+normalizador de `perfil-ff.js` acepta varios formatos de respuesta (`basicInfo`, `account`,
+`data`, `profile`...) y el cambio se hace en el Worker sin tocar la plataforma. Si el servicio
+falla, el registro no se traba: ofrece escribir el nick a mano y seguir con la verificación por
+código, que es lo que de verdad importa.
 
 ## 2. Cobrar y pagar dinero de verdad
 

@@ -29,7 +29,9 @@ También hay dos botones de acceso rápido en la pantalla **Entrar**.
 ## Qué se puede hacer hoy
 
 **Como jugador**
-- Conectar la cuenta con el ID de Free Fire (trae nick, nivel y rango, y pide un código de verificación).
+- Conectar la cuenta escribiendo el ID de Free Fire: la plataforma trae nick, nivel, EXP, likes,
+  región, rango BR y CS, honor, gremio y fecha de creación de la cuenta, y después pide un código
+  de verificación para confirmar que la cuenta es suya.
 - Recargar saldo y ver el historial de movimientos.
 - Comprar el cupo de un torneo (solo, dúo o escuadra) y aparecer al instante en la lista de participantes.
 - Cancelar la inscripción y recuperar el dinero mientras la sala no se haya publicado.
@@ -52,7 +54,9 @@ Esta demo **no mueve dinero real** y **no consulta a Garena**. Todo se guarda en
 `localStorage` del navegador:
 
 - Las recargas se acreditan sin pasarela de pago.
-- El perfil de Free Fire se genera a partir del ID, no viene de un servidor de Garena.
+- El perfil de Free Fire se genera a partir del ID mientras `perfilApi` esté vacío en
+  `js/store.js`. Con el proveedor conectado, los datos son reales; la pantalla siempre
+  dice de dónde vienen.
 - La verificación de cuenta se aprueba automáticamente.
 - Cada navegador tiene sus propios datos: lo que inscribe un celular no lo ve otro.
 
@@ -65,8 +69,12 @@ Para pasar a producción hace falta un backend. Está todo explicado en
 torneos/
 ├── index.html          # Cascarón de la SPA (nav, footer, contenedor)
 ├── css/arena.css       # Estilos, mobile-first, sin framework
+├── js/perfil-ff.js     # Consulta del perfil de Free Fire por ID (proveedor + normalización + caché)
 ├── js/store.js         # Capa de datos: hoy localStorage, mañana llamadas al API
 ├── js/app.js           # Router por hash + vistas + panel de administración
+├── servidor/
+│   ├── perfil-ff.worker.js   # Intermediario para Cloudflare Workers (evita CORS y bloqueos de IP)
+│   └── mock-perfil.js        # Proveedor de prueba para desarrollar en local
 ├── README.md
 └── ARQUITECTURA.md     # Cómo hacerlo real: pagos, cuentas, WhatsApp, legal
 ```
@@ -74,3 +82,22 @@ torneos/
 `store.js` es la pieza clave: **todas** sus funciones son asíncronas a propósito.
 Cuando exista el backend, se cambia el cuerpo de cada función por un `fetch()` y
 el resto de la aplicación no se entera.
+
+## Conectar los datos reales de Free Fire
+
+Para que el ID traiga el perfil de verdad (y no datos de demostración):
+
+```bash
+# 1. Probar en local con el proveedor de mentiras
+node torneos/servidor/mock-perfil.js
+
+# 2. En js/store.js, dentro de config:
+#    perfilApi: 'http://localhost:8787/perfil'
+```
+
+Para producción hay que desplegar `servidor/perfil-ff.worker.js` en Cloudflare Workers (gratis) y
+poner su URL en `perfilApi`. El detalle está en [`ARQUITECTURA.md`](ARQUITECTURA.md#1-detectar-el-perfil-por-id-y-por-qué-eso-no-es-iniciar-sesión).
+
+**Importante:** ver el perfil de un ID no prueba que la cuenta sea de quien la registra —
+cualquiera puede escribir el ID de otro. Por eso el segundo paso (el código en la biografía del
+juego) no se puede saltar.

@@ -649,6 +649,8 @@
     /* ---------- REGISTRO (conectar cuenta de Free Fire) ---------- */
     let regPerfil = null;
     V.registro = async function () {
+        const cfg = S.config();
+        const regiones = window.PerfilFF.REGIONES;
         return `
         <div class="wrap" style="max-width:560px">
             <div class="center mb">
@@ -660,16 +662,22 @@
                 <div id="regMsg"></div>
                 <div class="field">
                     <label>Tu ID de Free Fire</label>
-                    <input type="text" id="regUid" inputmode="numeric" placeholder="Ej: 2148563097">
-                    <div class="hint">Lo encuentras en el juego, en tu perfil, debajo del nombre.</div>
+                    <input type="text" id="regUid" inputmode="numeric" placeholder="Ej: 1890109056" autocomplete="off">
+                    <div class="hint">Está en el juego, en tu perfil, debajo del nombre. Son solo números.</div>
+                </div>
+                <div class="field">
+                    <label>Región de tu cuenta</label>
+                    <select id="regRegion">
+                        ${Object.entries(regiones).map(([k, v]) =>
+                            `<option value="${k}" ${k === cfg.regionPorDefecto ? 'selected' : ''}>${esc(v)}</option>`).join('')}
+                    </select>
                 </div>
                 <button class="btn btn-azul btn-block" id="btnBuscar">
                     <i class="bi bi-search"></i> Buscar mi cuenta
                 </button>
                 <div class="msg msg-warn mt" style="font-size:.78rem">
-                    <b>Ojo:</b> Garena no ofrece un "iniciar sesión con Free Fire" para plataformas externas.
-                    Lo que hacemos es traer tu perfil público por el ID y verificar que la cuenta es tuya
-                    con un código. Nunca te pediremos tu contraseña de Free Fire ni tu cuenta de Google/Facebook.
+                    <b>Nunca</b> te vamos a pedir la contraseña de Free Fire, ni tu cuenta de Google o Facebook.
+                    Con el ID solo se ven los datos públicos de tu perfil, igual que en el juego.
                 </div>
             </div>
         </div>`;
@@ -679,32 +687,86 @@
         regPerfil = null;
         $('#btnBuscar').onclick = async function () {
             const uidVal = $('#regUid').value.trim();
-            this.disabled = true; this.innerHTML = 'Buscando...';
+            const regionVal = $('#regRegion').value;
+            this.disabled = true; this.innerHTML = '<i class="bi bi-hourglass-split"></i> Buscando tu cuenta...';
             try {
-                regPerfil = await S.consultarPerfilFF(uidVal);
+                regPerfil = await S.consultarPerfilFF(uidVal, regionVal);
                 pintarPaso2();
             } catch (e) {
                 $('#regMsg').innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>`;
                 this.disabled = false; this.innerHTML = '<i class="bi bi-search"></i> Buscar mi cuenta';
+                $('#regMsg').innerHTML += `<button class="btn btn-ghost btn-block btn-sm mb" id="btnManual">
+                    <i class="bi bi-pencil"></i> Escribir mis datos a mano</button>`;
+                const bm = $('#btnManual');
+                if (bm) bm.onclick = () => {
+                    regPerfil = Object.assign(window.PerfilFF.perfilSimulado(($('#regUid').value.trim() || '0').replace(/\D/g, '') || '1000000000', $('#regRegion').value), { fuente: 'manual', nick: '' });
+                    pintarPaso2();
+                };
             }
         };
     };
+
+
+    /* Tarjeta con los datos del perfil de Free Fire */
+    function tarjetaPerfilFF(p, opciones) {
+        const op = opciones || {};
+        const F = window.PerfilFF;
+        const dato = (etq, val, ico) => val
+            ? `<div class="ff-dato"><span class="muted"><i class="bi ${ico}"></i> ${etq}</span><b>${esc(val)}</b></div>`
+            : '';
+        const creada = p.creada
+            ? new Date(p.creada).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })
+            : null;
+        return `
+        <div class="ff-perfil">
+            <div class="ff-perfil-top">
+                <div class="ff-ava">${p.avatarUrl
+                    ? `<img src="${esc(p.avatarUrl)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:14px">`
+                    : esc(initials(p.nick))}</div>
+                <div style="min-width:0;flex:1">
+                    <div class="ff-nick">${esc(p.nick || '—')}</div>
+                    <div class="muted mono">ID ${esc(p.uid)}</div>
+                    ${p.bio ? `<div class="muted" style="margin-top:4px">"${esc(p.bio)}"</div>` : ''}
+                </div>
+                <div class="ff-nivel">
+                    <div class="ff-nivel-num">${p.nivel || '—'}</div>
+                    <div class="stat-lbl">Nivel</div>
+                </div>
+            </div>
+            <div class="ff-datos">
+                ${dato('Región', F.nombreRegion(p.region), 'bi-globe-americas')}
+                ${dato('Likes', (p.likes || 0).toLocaleString('es-CO'), 'bi-hand-thumbs-up-fill')}
+                ${dato('Rango BR', p.rangoBR, 'bi-award-fill')}
+                ${dato('Rango CS', p.rangoCS, 'bi-crosshair')}
+                ${dato('EXP', (p.exp || 0).toLocaleString('es-CO'), 'bi-lightning-charge-fill')}
+                ${dato('Honor', p.honor, 'bi-shield-fill-check')}
+                ${dato('Gremio', p.gremio ? `${p.gremio.nombre}${p.gremio.nivel ? ' · Nv ' + p.gremio.nivel : ''}` : '', 'bi-people-fill')}
+                ${dato('Cuenta creada', creada ? `${creada}${F.antiguedad(p.creada) ? ' (' + F.antiguedad(p.creada) + ')' : ''}` : '', 'bi-calendar-check')}
+            </div>
+            ${op.pie === false ? '' : `<div class="ff-fuente">
+                ${p.fuente === 'api'
+                    ? `<i class="bi bi-broadcast"></i> Datos traídos del servidor de Free Fire${p.deCache ? ' (guardados hace un momento)' : ''}`
+                    : p.fuente === 'manual'
+                        ? `<i class="bi bi-pencil"></i> Datos escritos a mano`
+                        : `<i class="bi bi-cone-striped"></i> Datos de demostración — falta conectar el proveedor de perfiles`}
+            </div>`}
+        </div>`;
+    }
 
     function pintarPaso2() {
         const p = regPerfil;
         $('#s2').classList.add('on');
         $('#regCard').innerHTML = `
-            <div class="ff-card">
-                <div class="ff-ava">${esc(initials(p.nick))}</div>
-                <div style="min-width:0">
-                    <div style="font-weight:800;font-size:1.05rem">${esc(p.nick)}</div>
-                    <div class="muted">ID ${esc(p.ffUid)} · Nivel ${p.nivel} · ${esc(p.rango)} · ${esc(p.region)}</div>
-                    <div class="muted"><i class="bi bi-hand-thumbs-up-fill"></i> ${p.likes} likes</div>
-                </div>
-            </div>
+            ${tarjetaPerfilFF(p)}
+            ${p.fuente === 'manual' ? `<div class="field">
+                <label>Tu nick exacto en el juego</label>
+                <input type="text" id="regNickManual" placeholder="Como aparece en Free Fire">
+            </div>` : `<button class="btn btn-ghost btn-block btn-sm mb" id="btnOtroId">
+                <i class="bi bi-arrow-left"></i> Ese no soy yo, cambiar de ID</button>`}
             <div class="msg msg-info">
-                <b>Verifica que es tuya:</b> pon el código <b class="mono">${esc(p.codigoVerificacion)}</b>
-                en tu biografía del juego (o manda la captura por WhatsApp). En esta demo la verificación es automática.
+                <b>Falta un paso para verificarte:</b> pon el código <b class="mono">${esc(p.codigoVerificacion)}</b>
+                en tu biografía dentro del juego y manda la captura por WhatsApp.
+                Cualquiera puede ver el perfil de un ID, así que este código es el que demuestra que la cuenta es tuya.
             </div>
             <div id="regMsg2"></div>
             <div class="row-2">
@@ -732,12 +794,19 @@
         `;
         $('#btnCrear').onclick = async function () {
             const pass = $('#regPass').value, pass2 = $('#regPass2').value;
-            const msg = (m) => { $('#regMsg2').innerHTML = `<div class="msg msg-err">${esc(m)}</div>`; };
+            const msgErr = (m) => {
+                $('#regMsg2').innerHTML = `<div class="msg msg-err">${esc(m)}</div>`;
+                this.disabled = false; this.textContent = 'Crear mi cuenta';
+            };
+            const msg = msgErr;
             if (pass !== pass2) return msg('Las contraseñas no coinciden.');
             this.disabled = true; this.textContent = 'Creando...';
             try {
+                const nickManual = $('#regNickManual');
+                const nickFinal = nickManual ? nickManual.value.trim() : p.nick;
+                if (!nickFinal) return msgErr('Escribe tu nick exacto del juego.');
                 const u = await S.registrar({
-                    ffUid: p.ffUid, nick: p.nick, nivel: p.nivel, region: p.region,
+                    ffUid: p.uid || p.ffUid, nick: nickFinal, nivel: p.nivel, region: p.region, perfil: p,
                     email: $('#regEmail').value.trim(), whatsapp: $('#regWa').value.trim(), pass
                 });
                 toast('Cuenta creada. ¡Bienvenido, ' + u.nick + '!', 'ok');
@@ -745,9 +814,11 @@
                 render();
             } catch (e) {
                 msg(e.message);
-                this.disabled = false; this.textContent = 'Crear mi cuenta';
             }
         };
+
+        const bo = $('#btnOtroId');
+        if (bo) bo.onclick = () => { regPerfil = null; render(); };
     }
 
     /* ---------- BILLETERA ---------- */
@@ -917,7 +988,7 @@
                     <div class="ff-ava" style="width:68px;height:68px;flex:0 0 68px;font-size:2rem">${esc(initials(yo.nick))}</div>
                     <div style="min-width:0;flex:1">
                         <h2 style="margin-bottom:2px">${esc(yo.nick)}</h2>
-                        <div class="muted">ID ${esc(yo.ffUid)} · Nivel ${yo.nivel} · ${esc(yo.region)}</div>
+                        <div class="muted">ID ${esc(yo.ffUid)} · Nivel ${yo.nivel} · ${esc(window.PerfilFF.nombreRegion(yo.region))}</div>
                         <div class="flex mt" style="gap:6px">
                             ${yo.verificado ? `<span class="pill pill-abierto"><i class="bi bi-patch-check-fill"></i> Cuenta verificada</span>` : `<span class="pill pill-lleno">Sin verificar</span>`}
                             ${yo.rol === 'admin' ? `<span class="pill pill-escuadra">Admin</span>` : ''}
@@ -954,6 +1025,20 @@
             </div>
 
             <div class="card mt">
+                <div class="section-head" style="margin-bottom:12px">
+                    <h3>Datos de tu cuenta de Free Fire</h3>
+                    <button class="btn btn-ghost btn-sm" id="btnRefrescarFF"><i class="bi bi-arrow-clockwise"></i> Actualizar</button>
+                </div>
+                <div id="ffPerfilBox">
+                    ${yo.perfil
+                        ? tarjetaPerfilFF(yo.perfil)
+                        : `<div class="empty" style="padding:22px"><i class="bi bi-person-badge"></i>
+                             Todavía no hemos traído los datos de tu cuenta.
+                             <div class="mt"><span class="muted">Toca "Actualizar" para consultarlos por tu ID.</span></div></div>`}
+                </div>
+            </div>
+
+            <div class="card mt">
                 <h3 class="mb">Datos de contacto</h3>
                 <div class="t-row" style="padding:8px 0;border-bottom:1px solid var(--line)"><span>WhatsApp</span><b>+${esc(yo.whatsapp)}</b></div>
                 <div class="t-row" style="padding:8px 0"><span>Correo</span><b>${esc(yo.email || '—')}</b></div>
@@ -962,6 +1047,20 @@
     };
 
     V.perfil.despues = function () {
+        const br = $('#btnRefrescarFF');
+        if (br) br.onclick = async function () {
+            this.disabled = true; this.innerHTML = '<i class="bi bi-hourglass-split"></i> Consultando...';
+            try {
+                const u = await S.actualizarPerfilFF();
+                $('#ffPerfilBox').innerHTML = tarjetaPerfilFF(u.perfil);
+                toast('Datos actualizados desde el juego', 'ok');
+                pintarNav();
+            } catch (e) {
+                toast(e.message, 'err');
+            }
+            this.disabled = false; this.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Actualizar';
+        };
+
         const b = $('#btnSalir');
         if (b) b.onclick = async () => {
             await S.logout(); toast('Sesión cerrada', 'ok'); location.hash = '#/'; render();

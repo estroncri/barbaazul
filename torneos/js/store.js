@@ -76,7 +76,7 @@ window.Store = (function () {
             ffUid: '1000000001',
             nick: 'ARENA ADMIN',
             nivel: 72,
-            region: 'CO',
+            region: 'us',
             email: 'admin@arenaazul.co',
             whatsapp: '573000000000',
             pass: hash('admin123'),
@@ -91,7 +91,7 @@ window.Store = (function () {
             ffUid: '2148563097',
             nick: 'ElCostaXD',
             nivel: 58,
-            region: 'CO',
+            region: 'us',
             email: 'demo@arenaazul.co',
             whatsapp: '573001112233',
             pass: hash('demo123'),
@@ -217,6 +217,13 @@ window.Store = (function () {
             sesion: null,
             config: {
                 marca: 'ARENA AZUL',
+                // Endpoint propio que consulta el perfil de Free Fire por ID.
+                // Vacío = modo demostración (datos simulados en el navegador).
+                // Para activarlo: despliega torneos/servidor/perfil-ff.worker.js
+                // y pon aquí su URL, por ejemplo:
+                //   'https://arena-perfil-ff.tu-usuario.workers.dev/perfil'
+                perfilApi: '',
+                regionPorDefecto: 'us',
                 whatsappGrupo: 'https://chat.whatsapp.com/XXXXXXXXXXXXXXXXX',
                 whatsappSoporte: '573001112233',
                 metodosPago: ['Nequi', 'Daviplata', 'Bancolombia', 'Efecty'],
@@ -255,27 +262,17 @@ window.Store = (function () {
 
         /* ---------- Sesión / cuenta ---------- */
 
-        // Simula la consulta del perfil público a partir del UID de Free Fire.
-        // En producción NO existe una API oficial de Garena para esto:
-        // se verifica con código en la bio + captura revisada por un admin.
-        consultarPerfilFF: async (ffUid) => {
-            await wait(700);
-            if (!/^\d{8,12}$/.test(String(ffUid))) {
-                throw new Error('El ID de Free Fire debe tener entre 8 y 12 dígitos.');
-            }
-            const semilla = String(ffUid).split('').reduce((a, c) => a + +c, 0);
-            return {
-                ffUid: String(ffUid),
-                nick: NICKS[semilla % NICKS.length] + (semilla % 97),
-                nivel: 30 + (semilla % 45),
-                region: 'CO',
-                rango: ['Oro III', 'Platino I', 'Diamante II', 'Heroico', 'Maestro'][semilla % 5],
-                likes: 200 + semilla * 7,
-                codigoVerificacion: 'AZ-' + (1000 + (semilla * 37) % 8999)
-            };
+        // Consulta el perfil público por ID de Free Fire.
+        // La lógica vive en perfil-ff.js (proveedor + normalización + caché).
+        consultarPerfilFF: async (ffUid, region) => {
+            const perfil = await window.PerfilFF.consultar(ffUid, region || db.config.regionPorDefecto);
+            return Object.assign({}, perfil, {
+                codigoVerificacion: window.PerfilFF.codigoVerificacion(perfil.uid),
+                ffUid: perfil.uid
+            });
         },
 
-        registrar: async ({ ffUid, nick, nivel, region, email, whatsapp, pass }) => {
+        registrar: async ({ ffUid, nick, nivel, region, email, whatsapp, pass, perfil }) => {
             await wait(DELAY);
             if (db.usuarios.some((u) => u.ffUid === String(ffUid))) {
                 throw new Error('Ese ID de Free Fire ya está registrado.');
@@ -286,7 +283,9 @@ window.Store = (function () {
             }
             const u = {
                 id: uid('u'), ffUid: String(ffUid), nick, nivel: nivel || 1,
-                region: region || 'CO', email: email || '',
+                region: region || 'us',
+                perfil: perfil || null,          // datos del juego tal como llegaron
+                email: email || '',
                 whatsapp: String(whatsapp).replace(/\D/g, ''),
                 pass: hash(pass), rol: 'jugador', saldo: 0,
                 verificado: true, // en producción: false hasta que un admin valide la captura
@@ -296,6 +295,17 @@ window.Store = (function () {
             db.sesion = u.id;
             save();
             return clone(u);
+        },
+
+        actualizarPerfilFF: async () => {
+            const yo = db.sesion ? usuarioPorId(db.sesion) : null;
+            if (!yo) throw new Error('Inicia sesión.');
+            const p = await window.PerfilFF.consultar(yo.ffUid, yo.region, { sinCache: true });
+            yo.perfil = p;
+            yo.nick = p.nick || yo.nick;
+            yo.nivel = p.nivel || yo.nivel;
+            save();
+            return clone(yo);
         },
 
         login: async (ffUidOrEmail, pass) => {
