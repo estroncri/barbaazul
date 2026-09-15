@@ -1,5 +1,5 @@
 /* ============================================================
-   ARENA AZUL — Aplicación (app.js)
+   TORNEOS FF — Aplicación (app.js)
    SPA sin framework: router por hash + vistas que devuelven HTML.
    ============================================================ */
 
@@ -742,7 +742,7 @@
                 ${dato('Rango BR', p.rangoBR, 'bi-award-fill')}
                 ${dato('Rango CS', p.rangoCS, 'bi-crosshair')}
                 ${dato('EXP', (p.exp || 0).toLocaleString('es-CO'), 'bi-lightning-charge-fill')}
-                ${dato('Honor', p.honor, 'bi-shield-fill-check')}
+                ${dato('Puntaje de crédito', p.credito || p.honor, 'bi-shield-fill-check')}
                 ${dato('Gremio', p.gremio ? `${p.gremio.nombre}${p.gremio.nivel ? ' · Nv ' + p.gremio.nivel : ''}` : '', 'bi-people-fill')}
                 ${dato('Cuenta creada', creada ? `${creada}${F.antiguedad(p.creada) ? ' (' + F.antiguedad(p.creada) + ')' : ''}` : '', 'bi-calendar-check')}
             </div>
@@ -906,7 +906,7 @@
                     <div class="card mt">
                         <h3 class="mb">¿Problemas con un pago?</h3>
                         <a class="btn btn-wa btn-block" target="_blank" rel="noopener"
-                           href="${esc(waLink('Hola, tengo una duda con un pago en Arena Azul. Mi ID de Free Fire es ' + yo.ffUid, cfg.whatsappSoporte))}">
+                           href="${esc(waLink('Hola, tengo una duda con un pago en Torneos FF. Mi ID de Free Fire es ' + yo.ffUid, cfg.whatsappSoporte))}">
                            <i class="bi bi-whatsapp"></i> Escribir a soporte
                         </a>
                     </div>
@@ -980,7 +980,7 @@
                     const t = await S.solicitarRetiro($('#retMonto', m).value, $('#retMetodo', m).value, $('#retCuenta', m).value.trim());
                     cerrarModal();
                     toast('Retiro solicitado. Queda en revisión.', 'ok');
-                    const txt = `Hola, solicité un retiro en Arena Azul.\nID Free Fire: ${yo.ffUid}\nNick: ${yo.nick}\nMonto: ${money(Math.abs(t.monto))}\nMétodo: ${t.metodo}\nCuenta: ${t.ref}`;
+                    const txt = `Hola, solicité un retiro en Torneos FF.\nID Free Fire: ${yo.ffUid}\nNick: ${yo.nick}\nMonto: ${money(Math.abs(t.monto))}\nMétodo: ${t.metodo}\nCuenta: ${t.ref}`;
                     window.open(waLink(txt, cfg.whatsappSoporte), '_blank', 'noopener');
                     render();
                 } catch (e) {
@@ -1006,7 +1006,7 @@
                 <div class="flex" style="gap:16px">
                     <div class="ff-ava" style="width:68px;height:68px;flex:0 0 68px;font-size:2rem">${esc(initials(yo.nick))}</div>
                     <div style="min-width:0;flex:1">
-                        <h2 style="margin-bottom:2px">${esc(yo.nick)}</h2>
+                        <h2 class="perfil-nick">${esc(yo.nick)}</h2>
                         <div class="muted">ID ${esc(yo.ffUid)}${yo.nivel ? ' · Nivel ' + yo.nivel : ''} · ${esc(window.PerfilFF.nombreRegion(yo.region))}</div>
                         <div class="flex mt" style="gap:6px">
                             ${yo.verificado ? `<span class="pill pill-abierto"><i class="bi bi-patch-check-fill"></i> Cuenta verificada</span>` : `<span class="pill pill-lleno">Sin verificar</span>`}
@@ -1136,7 +1136,7 @@
                     `La plataforma retiene el ${cfg.comision}% de lo recaudado para operación y premios de cortesía.`
                 ]],
                 ['Aviso importante', [
-                    'Arena Azul no está afiliada, patrocinada ni avalada por Garena ni por Free Fire.',
+                    'Torneos FF no está afiliada, patrocinada ni avalada por Garena ni por Free Fire.',
                     'Free Fire es una marca de Garena; aquí solo se organizan torneos de aficionados.',
                     'Menores de edad requieren permiso de un acudiente para participar con dinero.'
                 ]]
@@ -1286,7 +1286,7 @@
                         <button class="btn btn-ok btn-sm" data-pagar="${r.id}">Pagado</button>
                         <button class="btn btn-danger btn-sm" data-rechazar="${r.id}">Rechazar</button>
                         <a class="btn btn-wa btn-sm" target="_blank" rel="noopener"
-                           href="${esc(waLink(`Hola ${r.nick}, te acabo de enviar ${money(Math.abs(r.monto))} por ${r.metodo} a ${r.ref}. ¡Gracias por jugar en Arena Azul!`, r.whatsapp))}"><i class="bi bi-whatsapp"></i></a>
+                           href="${esc(waLink(`Hola ${r.nick}, te acabo de enviar ${money(Math.abs(r.monto))} por ${r.metodo} a ${r.ref}. ¡Gracias por jugar en Torneos FF!`, r.whatsapp))}"><i class="bi bi-whatsapp"></i></a>
                     </div></td>
                 </tr>`).join('')}</tbody>
             </table></div>

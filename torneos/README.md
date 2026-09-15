@@ -1,4 +1,4 @@
-# Arena Azul — Plataforma de torneos de Free Fire
+# Torneos FF — Plataforma de torneos de Free Fire
 
 Prototipo funcional (demo) de una plataforma para organizar torneos de Free Fire:
 inscripciones pagas, lista pública de participantes, sala privada para los inscritos,
@@ -68,7 +68,7 @@ Para pasar a producción hace falta un backend. Está todo explicado en
 ```
 torneos/
 ├── index.html          # Cascarón de la SPA (nav, footer, contenedor)
-├── css/arena.css       # Estilos, mobile-first, sin framework
+├── css/estilos.css       # Estilos, mobile-first, sin framework
 ├── js/perfil-ff.js     # Consulta del perfil de Free Fire por ID (proveedor + normalización + caché)
 ├── js/store.js         # Capa de datos: hoy localStorage, mañana llamadas al API
 ├── js/app.js           # Router por hash + vistas + panel de administración
@@ -85,19 +85,27 @@ el resto de la aplicación no se entera.
 
 ## Conectar los datos reales de Free Fire
 
-Para que el ID traiga el perfil de verdad (y no datos de demostración):
+Para que el ID traiga el perfil de verdad y no datos de ejemplo:
 
 ```bash
-# 1. Probar en local con el proveedor de mentiras
-node torneos/servidor/mock-perfil.js
-
-# 2. En js/store.js, dentro de config:
-#    perfilApi: 'http://localhost:8787/perfil'
+node torneos/servidor/proxy-local.js
 ```
 
-Para producción hay que desplegar `servidor/perfil-ff.worker.js` en Cloudflare Workers (gratis) y
-poner su URL en `perfilApi`. El detalle está en [`ARQUITECTURA.md`](ARQUITECTURA.md#1-detectar-el-perfil-por-id-y-por-qué-eso-no-es-iniciar-sesión).
+y en `js/store.js`, dentro de `config`: `perfilApi: 'http://localhost:8787/perfil'`.
+
+Eso ya trae nick, nivel, rango, likes, gremio y fecha de creación reales desde tu computador.
+Para que funcione en internet hay que desplegar `servidor/perfil-ff.worker.js` en Cloudflare
+Workers (gratis). La lista de proveedores y los pasos están en
+[`ARQUITECTURA.md`](ARQUITECTURA.md).
 
 **Importante:** ver el perfil de un ID no prueba que la cuenta sea de quien la registra —
 cualquiera puede escribir el ID de otro. Por eso el segundo paso (el código en la biografía del
 juego) no se puede saltar.
+
+## Archivos del servidor
+
+| Archivo | Para qué |
+|---------|----------|
+| `servidor/proxy-local.js` | Probar con proveedores reales desde tu computador, sin desplegar nada |
+| `servidor/perfil-ff.worker.js` | El mismo proxy para Cloudflare Workers, para producción |
+| `servidor/mock-perfil.js` | Proveedor de mentiras, para trabajar sin internet |

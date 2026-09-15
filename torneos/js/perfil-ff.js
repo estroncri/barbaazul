@@ -1,5 +1,5 @@
 /* ============================================================
-   ARENA AZUL — Consulta de perfil de Free Fire (perfil-ff.js)
+   TORNEOS FF — Consulta de perfil de Free Fire (perfil-ff.js)
    ------------------------------------------------------------
    Trae los datos públicos de una cuenta a partir del ID, como
    hacen las páginas tipo "ver perfil de Free Fire por ID".
@@ -23,7 +23,7 @@
 window.PerfilFF = (function () {
     'use strict';
 
-    const CACHE_KEY = 'arena_perfil_cache_v1';
+    const CACHE_KEY = 'torneos_ff_perfil_cache_v1';
     const CACHE_MS = 10 * 60 * 1000;   // 10 minutos
     const TIMEOUT_MS = 12000;
 
@@ -33,6 +33,28 @@ window.PerfilFF = (function () {
         vn: 'Vietnam', tw: 'Taiwán', me: 'Medio Oriente', eu: 'Europa',
         pk: 'Pakistán', cis: 'CIS', bd: 'Bangladesh'
     };
+
+    /* ===== Rangos =====
+       La API no devuelve "Maestro" sino un código: 201 = Bronce I …
+       220 = Maestro. Sin esta tabla el jugador vería "Rango BR: 220". */
+    const RANGOS = {
+        201: 'Bronce I', 202: 'Bronce II', 203: 'Bronce III',
+        204: 'Plata I', 205: 'Plata II', 206: 'Plata III',
+        207: 'Oro I', 208: 'Oro II', 209: 'Oro III', 210: 'Oro IV',
+        211: 'Platino I', 212: 'Platino II', 213: 'Platino III', 214: 'Platino IV',
+        215: 'Diamante I', 216: 'Diamante II', 217: 'Diamante III', 218: 'Diamante IV',
+        219: 'Heroico', 220: 'Maestro'
+    };
+
+    function nombreRango(valor, puntos) {
+        if (valor === null || valor === undefined || valor === '') return null;
+        // Si ya viene con nombre (otros proveedores lo mandan así), se respeta
+        if (typeof valor === 'string' && !/^\d+$/.test(valor.trim())) return valor.trim();
+        const n = Number(valor);
+        const nombre = RANGOS[n] || (n >= 100 ? 'Rango ' + n : null);
+        if (!nombre) return null;
+        return puntos ? `${nombre} · ${Number(puntos).toLocaleString('es-CO')} pts` : nombre;
+    }
 
     /* ===== Caché ===== */
     function leerCache(clave) {
@@ -86,8 +108,13 @@ window.PerfilFF = (function () {
             likes: Number(primero(b, ['liked', 'likes', 'like'], 0)) || 0,
             region: String(primero(b, ['region', 'server'], region || '')).toLowerCase(),
             honor: Number(primero(b, ['honorScore', 'honor_score', 'honor'], 0)) || 0,
-            rangoBR: primero(b, ['rank', 'brRank', 'rankName', 'br_rank'], null),
-            rangoCS: primero(b, ['csRank', 'csRankName', 'cs_rank'], null),
+            rangoBR: nombreRango(
+                primero(b, ['rankName', 'brRank', 'rank', 'br_rank'], null),
+                primero(b, ['rankingPoints', 'ranking_points'], null)),
+            rangoCS: nombreRango(
+                primero(b, ['csRankName', 'csRank', 'cs_rank'], null),
+                primero(b, ['csRankingPoints', 'cs_ranking_points'], null)),
+            credito: Number(primero(d, ['creditScoreInfo.creditScore', 'creditScore', 'credit_score'], 0)) || 0,
             bio: primero(d, ['socialInfo.signature', 'social.signature', 'signature', 'bio'], ''),
             gremio: clan && (clan.clanName || clan.name)
                 ? {
@@ -98,7 +125,12 @@ window.PerfilFF = (function () {
                 }
                 : null,
             mascota: pet && (pet.name || pet.petName) ? { nombre: pet.name || pet.petName, nivel: Number(pet.level || 0) || 0 } : null,
-            avatarUrl: primero(d, ['avatarUrl', 'avatar', 'profileImage', 'basicInfo.headPic'], null),
+            // headPic y avatarId son NÚMEROS de catálogo, no direcciones de imagen:
+            // solo se acepta algo que de verdad sea una URL.
+            avatarUrl: (function () {
+                const v = primero(d, ['avatarUrl', 'avatar_url', 'avatar', 'profileImage'], null);
+                return typeof v === 'string' && /^https?:\/\//i.test(v) ? v : null;
+            })(),
             creada: ts(primero(b, ['createAt', 'created_at', 'createdAt', 'accountCreateTime'], null)),
             ultimaConexion: ts(primero(b, ['lastLoginAt', 'last_login', 'lastLogin'], null)),
             fuente: 'api',
@@ -120,7 +152,8 @@ window.PerfilFF = (function () {
             exp: 150000 + s * 731,
             likes: 200 + s * 7,
             region: (region || 'us').toLowerCase(),
-            honor: 80 + (s % 20),
+            honor: 0,
+            credito: 80 + (s % 20),
             rangoBR: ['Oro III', 'Platino I', 'Diamante II', 'Heroico', 'Maestro'][s % 5],
             rangoCS: ['Oro I', 'Platino III', 'Diamante I', 'Heroico'][s % 4],
             bio: '',
@@ -213,8 +246,9 @@ window.PerfilFF = (function () {
 
     function codigoVerificacion(uid) {
         const s = String(uid).split('').reduce((a, c) => a + +c, 0);
-        return 'AZ-' + (1000 + (s * 37) % 8999);
+        return 'FF-' + (1000 + (s * 37) % 8999);
     }
 
-    return { consultar, normalizar, nombreRegion, antiguedad, codigoVerificacion, REGIONES, perfilSimulado };
+    return { consultar, normalizar, nombreRegion, nombreRango, antiguedad,
+             codigoVerificacion, REGIONES, RANGOS, perfilSimulado };
 })();

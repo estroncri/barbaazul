@@ -1,5 +1,5 @@
 /* ============================================================
-   Arena Azul — Proxy de consulta de perfiles de Free Fire
+   Torneos FF — Proxy de consulta de perfiles de Free Fire
    Cloudflare Worker (plan gratis: 100.000 peticiones al día)
    ------------------------------------------------------------
    Este es el ÚNICO archivo que hay que tocar el día que el
@@ -13,14 +13,14 @@
 
    Desplegar:
      npm install -g wrangler
-     wrangler init arena-perfil-ff       (elegir "Hello World Worker")
+     wrangler init torneos-ff-perfil       (elegir "Hello World Worker")
      # pegar este archivo en src/index.js
      wrangler secret put FF_API_URL      # plantilla del proveedor
      wrangler secret put FF_API_KEY      # si el proveedor pide llave
      wrangler deploy
 
    Después, en torneos/js/store.js, poner en config:
-     perfilApi: 'https://arena-perfil-ff.TU-USUARIO.workers.dev/perfil'
+     perfilApi: 'https://torneos-ff-perfil.TU-USUARIO.workers.dev/perfil'
    ============================================================ */
 
 const ORIGENES_PERMITIDOS = [
@@ -55,13 +55,13 @@ export default {
         }
 
         // Caché de borde: misma cuenta consultada varias veces = una sola llamada al proveedor
-        const claveCache = new Request(`https://cache.arena/perfil/${region}/${uid}`, peticion);
+        const claveCache = new Request(`https://cache.torneosff/perfil/${region}/${uid}`, peticion);
         const cache = caches.default;
         const enCache = await cache.match(claveCache);
         if (enCache) {
             const r = new Response(enCache.body, enCache);
             Object.entries(cors).forEach(([k, v]) => r.headers.set(k, v));
-            r.headers.set('X-Arena-Cache', 'HIT');
+            r.headers.set('X-TorneosFF-Cache', 'HIT');
             return r;
         }
 
@@ -75,7 +75,7 @@ export default {
             .replace('{uid}', encodeURIComponent(uid))
             .replace('{region}', encodeURIComponent(region));
 
-        const cabeceras = { Accept: 'application/json', 'User-Agent': 'ArenaAzul/1.0' };
+        const cabeceras = { Accept: 'application/json', 'User-Agent': 'TorneosFF/1.0' };
         if (env.FF_API_KEY) {
             // Ajustar al esquema que pida el proveedor (Bearer, x-api-key, etc.)
             cabeceras['Authorization'] = `Bearer ${env.FF_API_KEY}`;

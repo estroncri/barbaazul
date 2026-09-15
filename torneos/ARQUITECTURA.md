@@ -21,7 +21,7 @@ Ahora bien, hay que separar dos cosas que se parecen pero no son lo mismo:
 
 Por eso el registro tiene los dos pasos: primero se detectan los datos (para que el jugador vea
 su nick y confirme que es él, y para que la lista de participantes muestre información real), y
-después se le pide poner un código tipo `AZ-2443` en su biografía del juego y mandar la captura.
+después se le pide poner un código tipo `FF-2443` en su biografía del juego y mandar la captura.
 Sin ese segundo paso, cualquiera podría inscribirse haciéndose pasar por otro.
 
 **Garena no publica una API oficial.** Esas páginas consultan servicios no oficiales que se caen,
@@ -48,41 +48,65 @@ El navegador nunca llama al proveedor directamente. Las razones son prácticas:
 
 ### Cómo activarlo
 
-**1. Probar en local** (sin contratar nada):
+**1. Probarlo ahora en tu computador** (un comando, sin cuenta en ningún lado):
 
 ```bash
-node torneos/servidor/mock-perfil.js     # queda en http://localhost:8787/perfil
+node torneos/servidor/proxy-local.js              # usa free-ff-api (gratis)
+node torneos/servidor/proxy-local.js --proveedor=glob   # el otro gratuito
 ```
 
-y en `js/store.js` poner `perfilApi: 'http://localhost:8787/perfil'`.
+y en `js/store.js`, dentro de `config`:
 
-**2. En producción:**
+```js
+perfilApi: 'http://localhost:8787/perfil',
+```
+
+Abre `/torneos/#/registro`, escribe tu ID, elige tu región y deberías ver tu nick real.
+La consola del proxy va mostrando cada consulta y cuánto tardó.
+
+**2. En producción** (Cloudflare Workers, gratis hasta 100.000 consultas al día):
 
 ```bash
 npm install -g wrangler
-wrangler init arena-perfil-ff            # elegir "Hello World Worker"
+wrangler init torneos-ff-perfil          # elegir "Hello World Worker"
 # pegar servidor/perfil-ff.worker.js en src/index.js
-wrangler secret put FF_API_URL           # https://proveedor.com/api?uid={uid}&region={region}
-wrangler secret put FF_API_KEY           # si el proveedor pide llave
+wrangler secret put FF_API_URL           # ver la tabla de abajo
+wrangler secret put FF_API_KEY           # solo si el proveedor pide llave
 wrangler deploy
 ```
 
 Después, en `js/store.js`:
 
 ```js
-perfilApi: 'https://arena-perfil-ff.tu-usuario.workers.dev/perfil',
+perfilApi: 'https://torneos-ff-perfil.tu-usuario.workers.dev/perfil',
 ```
 
-Mientras `perfilApi` esté vacío, la plataforma sigue funcionando con datos de demostración y lo
-dice en pantalla ("Datos de demostración — falta conectar el proveedor de perfiles"), así que
-nunca se hace pasar un dato inventado por real.
+### Proveedores
 
-**Sobre el proveedor:** son servicios de terceros que consultan los servidores de Garena sin
-convenio con ellos. Hay que contar con que alguno se caiga y toque cambiarlo; por eso el
-normalizador de `perfil-ff.js` acepta varios formatos de respuesta (`basicInfo`, `account`,
-`data`, `profile`...) y el cambio se hace en el Worker sin tocar la plataforma. Si el servicio
-falla, el registro no se traba: ofrece escribir el nick a mano y seguir con la verificación por
-código, que es lo que de verdad importa.
+Ninguno es oficial ni tiene convenio con Garena. Cuenta con que alguno se caiga: por eso el
+proxy es el único sitio a cambiar.
+
+| Proveedor | `FF_API_URL` | Llave | Nota |
+|---|---|---|---|
+| [free-ff-api](https://github.com/jinix6/free-ff-api) | `https://free-ff-api-src-5plp.onrender.com/api/v1/account?region={region}&uid={uid}` | No | Gratis. Alojado en Render, puede tardar en despertar |
+| [glob-info2](https://github.com/paulafredo/free-fire-info-api) | `https://glob-info2.vercel.app/info?uid={uid}` | No | Gratis, no pide región |
+| [FreeFireApi](https://github.com/siambhau/FreeFireApi) | según su documentación | Parcial | El grupo *Player Info* es gratis |
+| [HL Gaming Official](https://github.com/haroonbrokha1/Free-Fire-Account-Info-And-Stats-API) | según su documentación | Sí | 14+ regiones, pide llave y UID de desarrollador |
+
+Todos devuelven la misma estructura de Garena (`basicInfo`, `clanBasicInfo`, `socialInfo`), que es
+justo la que `js/perfil-ff.js` sabe leer.
+
+### Dos detalles que rompen si no se tienen en cuenta
+
+- **El rango viene como número, no como nombre.** La API devuelve `"rank": 220`, no `"Maestro"`.
+  La tabla de equivalencias (201 = Bronce I … 219 = Heroico, 220 = Maestro) está en
+  `perfil-ff.js`. Sin ella, el jugador vería «Rango BR: 220».
+- **`headPic` y `avatarId` son números de catálogo, no direcciones de imagen.** Meterlos en un
+  `<img>` da una foto rota. El normalizador solo acepta como avatar algo que empiece por `http`;
+  si no, usa las iniciales del nick.
+
+Mientras `perfilApi` esté vacío, la plataforma funciona con datos de ejemplo y lo dice en
+pantalla, con una cinta sobre la tarjeta. Nunca hace pasar un dato inventado por real.
 
 ## 2. Cobrar y pagar dinero de verdad
 

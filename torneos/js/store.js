@@ -1,5 +1,5 @@
 /* ============================================================
-   ARENA AZUL — Capa de datos (store.js)
+   TORNEOS FF — Capa de datos (store.js)
    ------------------------------------------------------------
    IMPORTANTE: esta capa simula el backend usando localStorage.
    Todas las funciones son asíncronas (devuelven Promise) a
@@ -11,7 +11,7 @@
 window.Store = (function () {
     'use strict';
 
-    const KEY = 'arena_azul_v1';
+    const KEY = 'torneos_ff_v1';
     const DELAY = 220; // simula latencia de red
 
     /* ===== Utilidades ===== */
@@ -77,7 +77,7 @@ window.Store = (function () {
             nick: 'ARENA ADMIN',
             nivel: 72,
             region: 'us',
-            email: 'admin@arenaazul.co',
+            email: 'admin@torneosff.co',
             whatsapp: '573000000000',
             pass: hash('admin123'),
             rol: 'admin',
@@ -92,7 +92,7 @@ window.Store = (function () {
             nick: 'ElCostaXD',
             nivel: 58,
             region: 'us',
-            email: 'demo@arenaazul.co',
+            email: 'demo@torneosff.co',
             whatsapp: '573001112233',
             pass: hash('demo123'),
             rol: 'jugador',
@@ -216,12 +216,12 @@ window.Store = (function () {
             ],
             sesion: null,
             config: {
-                marca: 'ARENA AZUL',
+                marca: 'TORNEOS FF',
                 // Endpoint propio que consulta el perfil de Free Fire por ID.
                 // Vacío = modo demostración (datos simulados en el navegador).
                 // Para activarlo: despliega torneos/servidor/perfil-ff.worker.js
                 // y pon aquí su URL, por ejemplo:
-                //   'https://arena-perfil-ff.tu-usuario.workers.dev/perfil'
+                //   'https://torneos-ff-perfil.tu-usuario.workers.dev/perfil'
                 perfilApi: '',
                 regionPorDefecto: 'us',
                 whatsappGrupo: 'https://chat.whatsapp.com/XXXXXXXXXXXXXXXXX',

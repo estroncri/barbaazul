@@ -1,5 +1,5 @@
 /* ============================================================
-   ARENA AZUL — Efectos visuales (efectos.js)
+   TORNEOS FF — Efectos visuales (efectos.js)
    ------------------------------------------------------------
    Brasas de fondo, contadores que suben, onda al pulsar y
    pequeños detalles de movimiento. Todo se apaga solo si el
