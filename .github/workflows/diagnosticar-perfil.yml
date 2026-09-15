@@ -12,6 +12,9 @@ on:
       uid:
         description: 'ID de Free Fire'
         required: true
+      plantilla:
+        description: 'Probar otro servicio: https://ejemplo/info?uid={uid}&region={region}'
+        required: false
 
 jobs:
   diagnosticar:
@@ -25,4 +28,5 @@ jobs:
         working-directory: torneos/servidor/worker
         env:
           FF_API_KEY: ${{ secrets.FF_API_KEY }}
+          PLANTILLA: ${{ inputs.plantilla }}
         run: node diagnosticar-perfil.mjs "${{ inputs.uid }}"
