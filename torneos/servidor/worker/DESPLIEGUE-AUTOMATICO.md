@@ -46,7 +46,8 @@ Uno por uno:
 | `WOMPI_LLAVE_PUBLICA` | Empieza con `pub_test_` para probar |
 | `WOMPI_INTEGRIDAD` | Wompi → Programadores → Secretos → Integridad |
 | `WOMPI_EVENTOS` | La misma pantalla → Eventos |
-| `FF_PROVEEDOR` | `jinix` (para que el ID traiga el nick real) |
+| `FF_API_URL` | El servicio que trae el nick por ID. Ver abajo |
+| `FF_API_KEY` | *(opcional)* si ese servicio pide llave |
 | `SUBDOMINIO` | *(opcional)* el nombre que quieres para tu dirección: `algo`.workers.dev |
 | `PASS_PIMIENTA` | *(opcional, recomendado)* un texto largo al azar. Protege las contraseñas si alguien roba la base |
 
@@ -107,6 +108,38 @@ node torneos/servidor/worker/verificar-despliegue.js https://torneos-ff.estroncr
 Y después la prueba de verdad: entra con tu cuenta, crea un torneo, y desde otro
 navegador regístrate como jugador y recarga con la tarjeta de prueba de Wompi
 (`4242 4242 4242 4242`). El saldo debe aparecer solo.
+
+---
+
+## Que el ID traiga el nick
+
+Free Fire no tiene API oficial: para traer el nick de un ID hay que
+preguntarle a un servicio de terceros. Los dos gratuitos que traía la
+plataforma **dejaron de servir**: uno empezó a cobrar (contesta 402) y el otro
+contesta 404 para cualquier cuenta, incluso las que existen.
+
+Mientras no haya uno que funcione, el jugador escribe su nick a mano. La
+plataforma ya lo hace así cuando la consulta falla, y no dice que la cuenta no
+exista, porque no lo sabe.
+
+Para enchufar uno nuevo no hay que tocar código:
+
+1. **Pruébalo primero.** Actions → *Diagnosticar una cuenta* → pon un ID que
+   exista y, en el segundo campo, la dirección del servicio con `{uid}` y
+   `{region}` donde vayan:
+
+   ```
+   https://loquesea.com/info?uid={uid}&region={region}
+   ```
+
+   Si alguna línea sale con ✔ y el nick correcto, sirve.
+
+2. **Guárdalo** como el secreto `FF_API_URL` (y `FF_API_KEY` si pide llave) y
+   lanza el despliegue. Desde ese momento el ID trae el nick solo.
+
+Ningún servicio gratuito de estos dura para siempre: si un día deja de
+detectar cuentas, el diagnóstico te dice en un minuto si es el ID o es el
+servicio.
 
 ---
 

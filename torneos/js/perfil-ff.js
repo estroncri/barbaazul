@@ -218,7 +218,8 @@ window.PerfilFF = (function () {
         }
         clearTimeout(timer);
 
-        if (resp.status === 404) throw new Error('No encontramos ninguna cuenta con ese ID en esa región. Revisa el número y la región.');
+        // Un 404 dice que ESE servicio no tiene la cuenta, no que no exista.
+        if (resp.status === 404) throw new Error('No pudimos comprobar esa cuenta ahora mismo. Revisa el número, o escribe tus datos a mano.');
         if (resp.status === 429) throw new Error('Muchas consultas seguidas. Espera un momento y vuelve a intentar.');
         if (!resp.ok) throw new Error('El servicio de perfiles no respondió bien (error ' + resp.status + '). Puedes continuar escribiendo tus datos a mano.');
 

@@ -927,7 +927,11 @@ ruta('GET', /^\/api\/perfil$/, async (c) => {
         /* Los motivos van a los registros, no al jugador: a él solo le sirve
            saber que escriba el nick a mano. */
         console.log(`perfil ${uidFF}: ` + r.fallos.join(' | '));
-        throw noEncontrado('No encontramos ninguna cuenta con ese ID. Revisa el número, o escribe el nick a mano.');
+        /* Ojo con lo que se afirma aquí. Que un servicio de terceros conteste
+           404 no significa que la cuenta no exista: significa que ese
+           servicio no la tiene. Con los proveedores caídos, decirle a un
+           jugador que su cuenta no existe es mentirle y perderlo. */
+        throw noEncontrado('No pudimos comprobar esa cuenta ahora mismo. Escribe el nick tal como aparece en el juego.');
     }
 
     const respuesta = new Response(JSON.stringify(r.datos), {
