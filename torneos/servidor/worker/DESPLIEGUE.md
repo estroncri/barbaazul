@@ -10,6 +10,29 @@ Son unos 20 minutos, una sola vez.
 
 ---
 
+## Atajo: el instalador
+
+Si prefieres no seguir los pasos uno por uno, hay un instalador que hace todo
+lo de abajo y te va preguntando lo que necesita:
+
+```bash
+cd torneos/servidor/worker
+npm install
+node instalar.mjs
+```
+
+Crea la base de datos, pone las tablas, guarda los secretos de Wompi, publica el
+servidor, crea tu cuenta de organizador, deja la página apuntando a la dirección
+nueva y la comprueba. Al final te dice las dos cosas que quedan por hacer a mano
+(pegar la URL de eventos en Wompi y subir el cambio a GitHub).
+
+Para ver lo que haría sin que toque nada: `node instalar.mjs --simular`.
+
+Lo que sigue es el mismo proceso a mano, por si algo falla o prefieres ir viendo
+cada paso.
+
+---
+
 ## 1. Cuenta y herramienta
 
 1. Crea cuenta en [dash.cloudflare.com](https://dash.cloudflare.com) (gratis, sin tarjeta).
