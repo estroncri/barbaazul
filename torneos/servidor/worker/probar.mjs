@@ -269,6 +269,54 @@ comprobar(cambioSinSaberla.estado === 400, 'Sin la temporal, cambiar la clave ex
 
 
 /* ============================================================
+   Leer el perfil de una página web
+   ------------------------------------------------------------
+   Los servicios de perfiles que devolvían JSON dejaron de
+   servir, así que el último recurso es leer la página pública
+   que cualquiera abriría en el navegador. Estas pruebas cuidan
+   que se lea lo correcto, incluidos los nicks con caracteres
+   raros, que en Free Fire son la norma y no la excepción.
+   ============================================================ */
+console.log('\n── Leer el perfil de una página ──\n');
+
+const { extraerDeHtml } = await import('./src/index.js');
+
+/* Tal como llega de verdad: el nick lleva un espacio invisible y símbolos. */
+const paginaReal = `<!DOCTYPE html><html><head>
+<title>Nxlson\u3164ҳ̸INX (ID 1221001584): perfil de Free Fire | Free Fire Mania</title>
+<meta property="og:title" content="Nxlson\u3164ҳ̸INX (ID 1221001584): perfil de Free Fire">
+</head><body>
+<h1>Perfil del Jugador Nxlson\u3164ҳ̸INX en Free Fire</h1>
+<p>"Nxlson\u3164ҳ̸INX" es un jugador de Free Fire que tiene el ID (UID) 1221001584, su cuenta es de la
+regi\u00f3n Estados Unidos, creada el 21 de julio de 2019, tiene nivel 70, con 8.544 me gusta.</p>
+<span class="chip">Nivel 70</span><span class="chip">Regi\u00f3n: US</span><span class="chip">\u2665 8.544</span>
+</body></html>`;
+
+const p1 = extraerDeHtml(paginaReal, '1221001584', 'us');
+comprobar(p1 && p1.basicInfo.nickname === 'Nxlson\u3164ҳ̸INX',
+    'Saca el nick tal cual, con sus caracteres raros', p1 && p1.basicInfo.nickname);
+comprobar(p1.basicInfo.level === 70, 'Saca el nivel', p1.basicInfo.level);
+comprobar(p1.basicInfo.liked === 8544, 'Saca los me gusta', p1.basicInfo.liked);
+comprobar(p1.basicInfo.region === 'us', 'Saca la región', p1.basicInfo.region);
+comprobar(p1.basicInfo.accountId === '1221001584', 'Y el ID que se preguntó');
+
+/* Los nicks con & o comillas no pueden salir escritos como los guarda el HTML */
+const conEntidades = `<meta property="og:title" content="Ju&amp;n &#39;El Duro&#39; (ID 9999999999): perfil de Free Fire">`;
+const p2 = extraerDeHtml(conEntidades, '9999999999', 'sac');
+comprobar(p2.basicInfo.nickname === "Ju&n 'El Duro'", 'Devuelve el nick legible, no el del código HTML', p2.basicInfo.nickname);
+
+/* Si la página cambia y ya no está el nick, hay que decir que no, no inventar */
+comprobar(extraerDeHtml('<html><body>otra cosa</body></html>', '1', 'us') === null,
+    'Si la página cambia, no se inventa un nick');
+comprobar(extraerDeHtml('', '1', 'us') === null, 'Con la página vacía tampoco');
+
+/* El título sin og:title también vale */
+const soloTitulo = `<title>ELCOSTA (ID 123456789): perfil de Free Fire</title>`;
+comprobar(extraerDeHtml(soloTitulo, '123456789', 'us').basicInfo.nickname === 'ELCOSTA',
+    'Si no hay og:title, sirve el título de la pestaña');
+
+
+/* ============================================================
    Jugadores sin compañero
    ------------------------------------------------------------
    Mucha gente no tiene con quién jugar un dúo. Ahora se puede

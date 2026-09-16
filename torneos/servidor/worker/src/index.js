@@ -836,9 +836,50 @@ ruta('POST', /^\/api\/admin\/verificaciones\/([\w-]+)$/, async (c, m) => {
    la vista, y si cada jugador consultara desde su casa el proveedor
    acabaría bloqueando por IP. */
 export const PROVEEDORES = {
-    jinix: { url: 'https://free-ff-api-src-5plp.onrender.com/api/v1/account?region={region}&uid={uid}', porRegion: true },
-    glob:  { url: 'https://glob-info2.vercel.app/info?uid={uid}', porRegion: false }
+    jinix:   { url: 'https://free-ff-api-src-5plp.onrender.com/api/v1/account?region={region}&uid={uid}', porRegion: true },
+    glob:    { url: 'https://glob-info2.vercel.app/info?uid={uid}', porRegion: false },
+    /* Este no devuelve JSON: es la página que cualquiera abriría en el
+       navegador. Se lee de ella lo mismo que se ve. Su robots.txt no lo
+       prohíbe (solo cierra /paginas/carrega-mais-*), se identifica quién
+       pregunta y la respuesta se guarda un buen rato para no molestar. */
+    ffmania: { url: 'https://www.freefiremania.com.br/cuenta/{uid}.html?region={region}', porRegion: true, html: true }
 };
+
+const ENTIDADES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'", nbsp: ' ' };
+const sinEntidades = (t) => String(t).replace(/&(#?\w+);/g, (todo, e) => ENTIDADES[e]
+    || (e[0] === '#' ? String.fromCharCode(Number(e.slice(1))) : todo));
+
+/* Saca de la página lo mismo que lee una persona, y lo deja con la forma
+   que ya entiende el resto del programa. Si mañana le cambian el diseño,
+   esto dejará de encontrar el nick y el jugador lo escribirá a mano: es
+   justo lo que pasa hoy, así que no se pierde nada. */
+export function extraerDeHtml(html, uidFF, region) {
+    const texto = String(html);
+
+    /* El nick sale en el título, delante del "(ID 123...)". Es lo más
+       estable de la página: es lo que Google enseña en los resultados. */
+    const titulo = (texto.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
+        || texto.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || '';
+    const nick = sinEntidades(titulo.split(/\s*\(ID\s/i)[0] || '').trim();
+    if (!nick) return null;
+
+    const busca = (re) => (texto.match(re) || [])[1] || '';
+    const numero = (v) => Number(String(v).replace(/[^\d]/g, '')) || 0;
+
+    return {
+        basicInfo: {
+            accountId: String(uidFF),
+            nickname: nick,
+            // Pegado al dato: un comodín que salte etiquetas se come medio
+            // párrafo y acaba cogiendo el número equivocado (el 4 de "8.544").
+            level: numero(busca(/(?:nivel|n[íi]vel|level)\s*:?\s*(\d{1,3})\b/i)),
+            liked: numero(busca(/con\s+([\d.,]+)\s+me gusta/i)),
+            // Con los dos puntos obligatorios coge el "Región: US" del dato,
+            // y no el "región Estados Unidos" de la frase.
+            region: (busca(/Regi[óo]n\s*:\s*([A-Za-z]{2,4})\b/) || region || '').toLowerCase()
+        }
+    };
+}
 
 /* Las regiones donde Garena reparte las cuentas. La de Colombia es "sac"
    (Sudamérica), pero mucha gente tiene la cuenta en "us" o "br" sin saberlo:
@@ -849,12 +890,16 @@ const tieneCuenta = (d) => !!(d && (d.basicInfo || d.account || d.AccountInfo ||
     || (d.data && (d.data.basicInfo || d.data.nickname))));
 
 /* Un intento contra un proveedor. Devuelve los datos, o por qué no. */
-export async function intentarPerfil(plantilla, uidFF, region, env) {
+export async function intentarPerfil(plantilla, uidFF, region, env, esHtml) {
     const destino = plantilla
         .replace('{uid}', encodeURIComponent(uidFF))
         .replace('{region}', encodeURIComponent(String(region).toUpperCase()));
 
-    const cabeceras = { Accept: 'application/json', 'User-Agent': 'TorneosFF/1.0' };
+    /* Quien pregunta se identifica y dice para qué: si al dueño del sitio le
+       molesta, que sepa a quién escribirle antes que bloquear a ciegas. */
+    const cabeceras = esHtml
+        ? { Accept: 'text/html', 'User-Agent': 'TorneosFF/1.0 (+https://estroncri.github.io/barbaazul/torneos/)' }
+        : { Accept: 'application/json', 'User-Agent': 'TorneosFF/1.0' };
     if (env.FF_API_KEY) {
         cabeceras.Authorization = 'Bearer ' + env.FF_API_KEY;
         cabeceras['x-api-key'] = env.FF_API_KEY;
@@ -869,6 +914,11 @@ export async function intentarPerfil(plantilla, uidFF, region, env) {
     if (!r.ok) return { ok: false, porque: 'contestó ' + r.status };
 
     let datos;
+    if (esHtml) {
+        datos = extraerDeHtml(await r.text(), uidFF, region);
+        if (!datos) return { ok: false, porque: 'la página no trae el nick donde se esperaba' };
+        return { ok: true, datos };
+    }
     try { datos = await r.json(); } catch (e) { return { ok: false, porque: 'respuesta ilegible' }; }
 
     // Algunos contestan 200 con el error dentro
@@ -890,8 +940,10 @@ export async function buscarPerfil(uidFF, region, env) {
 
     intentos.push({ plantilla: principal, region, quien: env.FF_PROVEEDOR || 'principal' });
 
+    /* Primero los que contestan JSON, que es lo estable; los que hay que
+       leer del HTML van después, como último recurso. */
     for (const [nombre, prov] of Object.entries(PROVEEDORES)) {
-        if (!prov.porRegion && prov.url !== principal) {
+        if (!prov.html && !prov.porRegion && prov.url !== principal) {
             intentos.push({ plantilla: prov.url, region, quien: nombre });
         }
     }
@@ -900,9 +952,13 @@ export async function buscarPerfil(uidFF, region, env) {
         if (otra !== region) intentos.push({ plantilla: principal, region: otra, quien: (env.FF_PROVEEDOR || 'principal') + ':' + otra });
     }
 
+    for (const [nombre, prov] of Object.entries(PROVEEDORES)) {
+        if (prov.html) intentos.push({ plantilla: prov.url, region, quien: nombre, html: true });
+    }
+
     const fallos = [];
     for (const intento of intentos) {
-        const r = await intentarPerfil(intento.plantilla, uidFF, intento.region, env);
+        const r = await intentarPerfil(intento.plantilla, uidFF, intento.region, env, intento.html);
         if (r.ok) return { ok: true, datos: r.datos, quien: intento.quien, region: intento.region, fallos };
         fallos.push(`${intento.quien}: ${r.porque}`);
     }
@@ -935,7 +991,7 @@ ruta('GET', /^\/api\/perfil$/, async (c) => {
     }
 
     const respuesta = new Response(JSON.stringify(r.datos), {
-        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' }
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' }
     });
     c.espera(cache.put(claveCache, respuesta.clone()));
     return r.datos;
