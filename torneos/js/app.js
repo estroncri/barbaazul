@@ -29,6 +29,49 @@
 
     const initials = (nick) => String(nick || '?').trim().slice(0, 2).toUpperCase();
 
+    /* El indicativo del país se elige de una lista en vez de escribirlo. Un
+       número sin el 57 se guarda igual de bien pero no sirve para nada: el
+       día que haya que escribirle a esa persona —una recuperación de
+       contraseña, un pago que no llegó— el enlace lleva a un número que no
+       existe, y eso se descubre tarde y con plata de por medio. */
+    const INDICATIVOS = [
+        ['57', 'Colombia'], ['58', 'Venezuela'], ['593', 'Ecuador'], ['51', 'Perú'],
+        ['56', 'Chile'], ['54', 'Argentina'], ['55', 'Brasil'], ['52', 'México'],
+        ['591', 'Bolivia'], ['595', 'Paraguay'], ['598', 'Uruguay'], ['507', 'Panamá'],
+        ['506', 'Costa Rica'], ['502', 'Guatemala'], ['503', 'El Salvador'],
+        ['504', 'Honduras'], ['505', 'Nicaragua'], ['1', 'EE.UU. / Canadá'], ['34', 'España']
+    ];
+
+    function campoWhatsapp(id, valor) {
+        /* Si ya hay un número guardado, se parte en indicativo y resto para
+           que la persona vea lo suyo y no tenga que volver a escribirlo. */
+        const guardado = String(valor || '').replace(/\D/g, '');
+        const suyo = INDICATIVOS.filter(([c]) => guardado.startsWith(c))
+            .sort((a, b) => b[0].length - a[0].length)[0];
+        const indicativo = suyo ? suyo[0] : '57';
+        const resto = suyo ? guardado.slice(indicativo.length) : guardado;
+
+        return `<div class="tel">
+            <select id="${id}Ind" aria-label="Indicativo del país">
+                ${INDICATIVOS.map(([c, pais]) =>
+                    `<option value="${c}" ${c === indicativo ? 'selected' : ''}>+${c} ${esc(pais)}</option>`).join('')}
+            </select>
+            <input type="tel" id="${id}" inputmode="numeric" placeholder="300 111 2233" value="${esc(resto)}">
+        </div>`;
+    }
+
+    /* Junta lo elegido con lo escrito. Si alguien pega el número completo con
+       su indicativo delante, no se le pone dos veces. */
+    function leerWhatsapp(id, ctx) {
+        const ind = $('#' + id + 'Ind', ctx);
+        const num = $('#' + id, ctx);
+        if (!num) return '';
+        const escrito = (num.value || '').replace(/\D/g, '');
+        if (!ind) return escrito;
+        const codigo = ind.value;
+        return escrito.startsWith(codigo) && escrito.length > 10 ? escrito : codigo + escrito;
+    }
+
     /* ¿Qué hay al otro lado cuando el jugador pulsa "recargar"? Se le pregunta
        al servidor una sola vez y se recuerda, porque de eso depende lo único
        que el jugador necesita saber antes de poner su tarjeta: si el dinero
@@ -1143,8 +1186,9 @@
             <div id="regMsg2"></div>
             <div class="row-2">
                 <div class="field">
-                    <label>WhatsApp (con indicativo)</label>
-                    <input type="tel" id="regWa" inputmode="numeric" placeholder="573001112233">
+                    <label>WhatsApp</label>
+                    ${campoWhatsapp('regWa')}
+                    <div class="hint">Por aquí te escribimos si hay un problema con un pago.</div>
                 </div>
                 <div class="field">
                     <label>Correo (opcional)</label>
@@ -1182,7 +1226,7 @@
                     nivel: p.fuente === 'api' ? p.nivel : 0,
                     region: p.region,
                     perfil: p.fuente === 'api' ? p : null,
-                    email: $('#regEmail').value.trim(), whatsapp: $('#regWa').value.trim(), pass
+                    email: $('#regEmail').value.trim(), whatsapp: leerWhatsapp('regWa'), pass
                 });
                 toast('Cuenta creada. ¡Bienvenido, ' + u.nick + '!', 'ok');
                 location.hash = '#/billetera';

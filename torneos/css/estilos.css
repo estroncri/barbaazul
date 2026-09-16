@@ -854,3 +854,16 @@ footer a { color: var(--oro); }
     .hero-logo, .brand-mark::after { animation: none; }
     #brasas { display: none; }
 }
+
+/* Indicativo + número: el país se elige, no se escribe. */
+.tel { display: flex; gap: 8px; }
+.tel select {
+    flex: 0 0 auto; width: auto; max-width: 47%;
+    padding-inline: 10px;
+}
+.tel input { flex: 1 1 auto; min-width: 0; }
+
+@media (max-width: 420px) {
+    .tel { flex-direction: column; }
+    .tel select { max-width: none; width: 100%; }
+}
