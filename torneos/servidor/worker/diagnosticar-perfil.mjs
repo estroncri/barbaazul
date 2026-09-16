@@ -33,8 +33,8 @@ let encontrada = 0;
 /* Se prueba la región como la mandamos (mayúsculas) y también en
    minúsculas: si un proveedor cambió de criterio, el fallo se ve igual que
    "esa cuenta no existe" y se pierden horas buscando por el lado que no es. */
-async function probar(etiqueta, url, region) {
-    const r = await intentarPerfil(url, uid, region, env);
+async function probar(etiqueta, url, region, esHtml) {
+    const r = await intentarPerfil(url, uid, region, env, esHtml);
     console.log(`  ${r.ok ? '✔' : '·'} ${etiqueta.padEnd(28)} ${r.ok ? nick(r.datos) : r.porque}`);
     if (r.ok) encontrada++;
     return r.ok;
@@ -42,14 +42,14 @@ async function probar(etiqueta, url, region) {
 
 for (const [nombre, prov] of Object.entries(PROVEEDORES)) {
     if (!prov.porRegion) {
-        await probar(`${nombre} (sin región)`, prov.url, '');
+        await probar(`${nombre} (sin región)`, prov.url, '', prov.html);
         continue;
     }
     for (const region of REGIONES) {
-        if (await probar(`${nombre} ${region} (MAYÚS)`, prov.url, region)) break;
+        if (await probar(`${nombre} ${region} (MAYÚS)`, prov.url, region, prov.html)) break;
         /* La plantilla pone la región en mayúsculas; para probarla tal cual
            se escribe, se mete ya sustituida. */
-        if (await probar(`${nombre} ${region} (minús)`, prov.url.replace('{region}', region), region)) break;
+        if (await probar(`${nombre} ${region} (minús)`, prov.url.replace('{region}', region), region, prov.html)) break;
     }
 }
 
