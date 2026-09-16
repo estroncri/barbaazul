@@ -13,7 +13,10 @@ on:
         description: 'ID de Free Fire'
         required: true
       plantilla:
-        description: 'Probar otro servicio: https://ejemplo/info?uid={uid}&region={region}'
+        description: 'Probar otro servicio JSON: https://ejemplo/info?uid={uid}&region={region}'
+        required: false
+      explorar:
+        description: 'Explorar una página web como fuente: https://sitio/cuenta/{uid}.html'
         required: false
 
 jobs:
@@ -30,3 +33,8 @@ jobs:
           FF_API_KEY: ${{ secrets.FF_API_KEY }}
           PLANTILLA: ${{ inputs.plantilla }}
         run: node diagnosticar-perfil.mjs "${{ inputs.uid }}"
+
+      - name: Explorar una página como fuente
+        if: inputs.explorar != ''
+        working-directory: torneos/servidor/worker
+        run: node explorar-fuente.mjs "${{ inputs.explorar }}" "${{ inputs.uid }}"
