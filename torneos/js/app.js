@@ -1733,6 +1733,7 @@
                     <button class="btn btn-fire btn-sm" data-result="${t.id}"><i class="bi bi-list-ol"></i> Resultados</button>
                     ${t.estado !== 'finalizado' ? `<button class="btn btn-ghost btn-sm" data-cerrar-insc="${t.id}">${t.estado === 'abierto' ? 'Cerrar inscripciones' : 'Reabrir'}</button>` : ''}
                     ${t.estado !== 'cancelado' && t.estado !== 'finalizado' ? `<button class="btn btn-danger btn-sm" data-cancelar="${t.id}">Cancelar y devolver</button>` : ''}
+                    ${t.estado === 'cancelado' || t.inscritos === 0 ? `<button class="btn btn-danger btn-sm" data-eliminar="${t.id}"><i class="bi bi-trash3-fill"></i> Eliminar</button>` : ''}
                 </div>
             </div>`).join('')}</div>`;
     }
@@ -2119,6 +2120,41 @@
                     } catch (e) {
                         $('#cancelarMsg', m).innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>`;
                         this.disabled = false;
+                    }
+                };
+            };
+        });
+
+        /* --- Eliminar (de verdad, no solo cancelar) ---
+           Solo aparece el botón cuando ya no hay dinero de nadie en juego:
+           el torneo está cancelado (ya se devolvió todo) o nunca tuvo un
+           inscrito. El servidor vuelve a comprobar esto mismo antes de
+           borrar, así que este botón no es la única barrera. */
+        $$('[data-eliminar]').forEach((b) => {
+            b.onclick = async () => {
+                const t = await S.torneo(b.dataset.eliminar);
+                const m = modal('Eliminar — ' + t.nombre, `
+                    <div class="msg msg-err">
+                        Esto borra el torneo por completo: no queda ni en la lista ni en tu
+                        panel. No se puede deshacer.
+                    </div>
+                    <div id="eliminarMsg"></div>
+                    <button class="btn btn-danger btn-block" id="btnConfirmarEliminar">
+                        Sí, eliminar este torneo
+                    </button>
+                    <button class="btn btn-ghost btn-block mt" data-cerrar>Mejor no</button>
+                `);
+                $('#btnConfirmarEliminar', m).onclick = async function () {
+                    this.disabled = true; this.textContent = 'Eliminando...';
+                    try {
+                        await S.eliminarTorneo(t.id);
+                        cerrarModal();
+                        toast('Torneo eliminado', 'ok');
+                        render();
+                    } catch (e) {
+                        $('#eliminarMsg', m).innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>`;
+                        this.disabled = false;
+                        this.textContent = 'Sí, eliminar este torneo';
                     }
                 };
             };

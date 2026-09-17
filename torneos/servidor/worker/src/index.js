@@ -406,6 +406,33 @@ ruta('POST', /^\/api\/torneos\/([\w-]+)\/cancelar$/, async (c, m) => {
     return { ok: true, devueltos: (results || []).length };
 });
 
+/* Borrar de verdad, no solo cancelar. Se permite únicamente cuando no hay
+   dinero de nadie que dependa de este torneo: o ya está cancelado (lo que
+   significa que a cada inscrito ya se le devolvió su cupo), o nunca llegó
+   a tener un inscrito. Cualquier otro caso —abierto, lleno, en curso o
+   finalizado con gente adentro— se rechaza: primero se cancela, que es lo
+   que devuelve la plata, y luego se borra si se quiere.
+
+   Las inscripciones y sus resultados se van solos por el CASCADE de la
+   base. Los movimientos de dinero (cobros, reembolsos, premios) se quedan:
+   son el historial de la billetera de cada jugador y no dependen de que
+   el torneo siga existiendo. */
+ruta('DELETE', /^\/api\/torneos\/([\w-]+)$/, async (c, m) => {
+    await c.exigirAdmin();
+    const t = await c.env.DB.prepare('SELECT * FROM torneos WHERE id = ?').bind(m[1]).first();
+    if (!t) throw noEncontrado('Torneo no encontrado.');
+
+    if (t.estado !== 'cancelado') {
+        const cuenta = await c.env.DB.prepare('SELECT COUNT(*) n FROM inscripciones WHERE torneo_id = ?').bind(t.id).first();
+        if (cuenta.n > 0) {
+            throw malaPeticion('Este torneo tiene inscritos con dinero pagado. Cancélalo primero: eso les devuelve el cupo, y ya se puede borrar.');
+        }
+    }
+
+    await c.env.DB.prepare('DELETE FROM torneos WHERE id = ?').bind(t.id).run();
+    return { ok: true };
+});
+
 /* ---------- Inscripción: el punto delicado ----------
 
    Una inscripción es una PARTE de un equipo. Las que juegan juntas comparten

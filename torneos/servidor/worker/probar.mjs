@@ -177,6 +177,36 @@ const antes = await saldo(tokJ);
 const can = await llamar('POST', `/api/torneos/${t2.id}/cancelar`, null, tokOrg);
 comprobar((await saldo(tokJ)) === antes + 10000, 'Cancelar devuelve el cupo completo', `${antes} → ${await saldo(tokJ)}`);
 
+/* ============================================================
+   Eliminar un torneo — solo cuando ya no hay plata en juego
+   ------------------------------------------------------------
+   Borrar de verdad (no solo cancelar) tiene que estar cerrado
+   mientras haya inscritos que pagaron: si no, se les borra la
+   prueba de que el torneo existió sin devolverles nada.
+   ============================================================ */
+
+/* Con gente adentro y sin cancelar: no se deja */
+const t2b = (await llamar('POST', '/api/torneos', { nombre: 'Con gente', modo: 'solo', fecha: '2030-02-05T00:00:00Z', cupoMax: 5, costo: 1000 }, tokOrg)).datos;
+await llamar('POST', `/api/torneos/${t2b.id}/inscripciones`, { equipo: { nombre: 'x', miembros: [{ nick: 'x', uid: '1' }] } }, tokJ);
+const noBorra = await llamar('DELETE', `/api/torneos/${t2b.id}`, null, tokOrg);
+comprobar(noBorra.estado === 400, 'Con inscritos y sin cancelar, no se puede eliminar', noBorra.datos.error);
+comprobar((await llamar('GET', `/api/torneos/${t2b.id}`, null, tokOrg)).estado === 200, 'Y el torneo sigue existiendo');
+
+/* Ya cancelado (o sea, ya devolvió todo): sí se deja */
+const borrado = await llamar('DELETE', `/api/torneos/${t2.id}`, null, tokOrg);
+comprobar(borrado.estado === 200, 'Un torneo ya cancelado sí se puede eliminar', borrado.datos.error);
+comprobar((await llamar('GET', `/api/torneos/${t2.id}`, null, tokOrg)).estado === 404, 'Y desaparece de verdad');
+
+/* Sin inscritos, aunque nunca se haya cancelado: también se deja */
+const vacio = (await llamar('POST', '/api/torneos', { nombre: 'Vacío', modo: 'solo', fecha: '2030-02-06T00:00:00Z', cupoMax: 5, costo: 1000 }, tokOrg)).datos;
+const borraVacio = await llamar('DELETE', `/api/torneos/${vacio.id}`, null, tokOrg);
+comprobar(borraVacio.estado === 200, 'Un torneo sin inscritos se puede eliminar sin cancelarlo antes');
+
+/* Solo el organizador puede eliminar */
+const t2c = (await llamar('POST', '/api/torneos', { nombre: 'Ajeno', modo: 'solo', fecha: '2030-02-07T00:00:00Z', cupoMax: 5, costo: 1000 }, tokOrg)).datos;
+const noAdmin = await llamar('DELETE', `/api/torneos/${t2c.id}`, null, tokJ);
+comprobar(noAdmin.estado === 403, 'Un jugador no puede eliminar torneos', noAdmin.datos.error);
+
 /* Cupo lleno */
 const t3 = (await llamar('POST', '/api/torneos', { nombre: 'Un cupo', modo: 'solo', fecha: '2030-03-01T00:00:00Z', cupoMax: 1, costo: 1000 }, tokOrg)).datos;
 await llamar('POST', `/api/torneos/${t3.id}/inscripciones`, { equipo: { nombre: 'Primero', miembros: [{ nick: 'a', uid: '1' }] } }, tokJ);

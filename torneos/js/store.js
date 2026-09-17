@@ -421,6 +421,20 @@ window.Store = (function () {
             return { ok: true, devueltos: ins.length };
         },
 
+        eliminarTorneo: async (id) => {
+            await wait(DELAY);
+            if (!api.esAdmin()) throw new Error('Acción solo para administradores.');
+            const t = db.torneos.find((x) => x.id === id);
+            if (!t) throw new Error('Torneo no encontrado.');
+            if (t.estado !== 'cancelado' && inscripcionesDe(id).length > 0) {
+                throw new Error('Este torneo tiene inscritos con dinero pagado. Cancélalo primero.');
+            }
+            db.torneos = db.torneos.filter((x) => x.id !== id);
+            db.inscripciones = db.inscripciones.filter((i) => i.torneoId !== id);
+            save();
+            return { ok: true };
+        },
+
         publicarSala: async (id, salaId, pass) => {
             await wait(DELAY);
             if (!api.esAdmin()) throw new Error('Acción solo para administradores.');
