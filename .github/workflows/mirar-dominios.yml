@@ -1,0 +1,26 @@
+# ¿Qué dominios están libres?
+#
+# Actions → Mirar dominios → Run workflow, y pones los que estés pensando
+# separados por espacios. Pregunta al registro oficial, no adivina.
+
+name: Mirar dominios
+
+on:
+  workflow_dispatch:
+    inputs:
+      dominios:
+        description: 'Dominios separados por espacios'
+        required: true
+        default: 'torneosff.online arenaff.online zonaff.online'
+
+jobs:
+  mirar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Preguntar al registro
+        working-directory: torneos/servidor/worker
+        run: node mirar-dominios.mjs ${{ inputs.dominios }}
