@@ -22,13 +22,37 @@ if (!dominios.length) {
     process.exit(1);
 }
 
-/* rdap.org redirige al registro que manda en cada terminación. */
+/* rdap.org nos contesta 403, así que se va a la fuente: la IANA publica qué
+   registro manda en cada terminación, y a ese se le pregunta directo. */
+let mapa = null;
+async function baseDe(tld) {
+    if (!mapa) {
+        const r = await fetch('https://data.iana.org/rdap/dns.json', {
+            headers: { 'User-Agent': UA },
+            signal: AbortSignal.timeout(15000)
+        });
+        mapa = await r.json();
+    }
+    for (const [tlds, bases] of mapa.services || []) {
+        if (tlds.includes(tld)) return String(bases[0]).replace(/\/+$/, '');
+    }
+    return null;
+}
+
+const UA = 'TorneosFF/1.0 (comprobando dominios propios)';
+
 async function mirar(dominio) {
+    const tld = dominio.split('.').pop().toLowerCase();
+    let base;
+    try { base = await baseDe(tld); }
+    catch (e) { return { duda: 'no se pudo leer la lista de la IANA: ' + e.message }; }
+    if (!base) return { duda: `nadie publica registro para .${tld}` };
+
     try {
-        const r = await fetch('https://rdap.org/domain/' + encodeURIComponent(dominio), {
-            headers: { Accept: 'application/rdap+json' },
+        const r = await fetch(`${base}/domain/${encodeURIComponent(dominio)}`, {
+            headers: { Accept: 'application/rdap+json', 'User-Agent': UA },
             redirect: 'follow',
-            signal: AbortSignal.timeout(12000)
+            signal: AbortSignal.timeout(15000)
         });
         if (r.status === 404) return { libre: true };
         if (r.status === 200) {

@@ -92,7 +92,11 @@ async function pedir(ruta, op = {}) {
     marca(t.estado === 401 || t.estado === 403, 'Solo el organizador puede crear torneos');
 
     /* 6. CORS: tu página debe estar autorizada */
-    const origenEsperado = EN_LOCAL ? 'http://localhost:8099' : 'https://estroncri.github.io';
+    /* El origen que debe estar autorizado es el del sitio de verdad. Si hay
+       dominio propio y el servidor no lo conoce, el jugador ve la página
+       pero no puede ni entrar ni pagar. */
+    const origenEsperado = EN_LOCAL ? 'http://localhost:8099'
+        : (process.env.SITIO ? new URL(process.env.SITIO).origin : 'https://estroncri.github.io');
     const cors = await pedir('/salud', { cabeceras: { Origin: origenEsperado } });
     const permitido = cors.cabeceras.get('access-control-allow-origin');
     marca(permitido === origenEsperado, `Tu página está autorizada (${origenEsperado})`,

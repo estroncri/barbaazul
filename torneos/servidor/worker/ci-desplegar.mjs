@@ -122,6 +122,34 @@ const toml = readFileSync(rutaToml, 'utf8')
 writeFileSync(rutaToml, toml);
 ok('Configuración lista');
 
+/* ---- La dirección de la página ----
+   Vive en wrangler.toml escrita a mano. En cuanto hay dominio propio hay que
+   cambiarla en dos sitios, y si no se cambia, el navegador bloquea las
+   peticiones del jugador y los pagos dejan de funcionar sin decir por qué.
+   Así que se calcula desde un solo secreto, SITIO.
+
+   Los orígenes viejos se conservan: mientras el dominio nuevo propaga, la
+   dirección de siempre tiene que seguir sirviendo. */
+if (process.env.SITIO) {
+    const sitio = process.env.SITIO.trim().replace(/\/+$/, '');
+    let origen;
+    try { origen = new URL(sitio).origin; }
+    catch (e) { throw new Error(`SITIO no es una dirección válida: "${sitio}"`); }
+
+    const toml = readFileSync(rutaToml, 'utf8').split('\n').map((l) => {
+        if (/^\s*ORIGENES\s*=/.test(l)) {
+            const previos = (l.match(/"([^"]*)"/) || [])[1] || '';
+            const todos = [...new Set([origen, ...previos.split(',').map((x) => x.trim()).filter(Boolean)])];
+            return `ORIGENES = "${todos.join(',')}"`;
+        }
+        if (/^\s*WOMPI_REDIRECT\s*=/.test(l)) return `WOMPI_REDIRECT = "${sitio}/#/billetera"`;
+        return l;
+    }).join('\n');
+
+    writeFileSync(rutaToml, toml);
+    ok(`Sitio: ${sitio}`);
+}
+
 /* ---- 2. Tablas ---- */
 paso('Migraciones');
 const mig = wrangler(['d1', 'migrations', 'apply', NOMBRE_BASE, '--remote']);
