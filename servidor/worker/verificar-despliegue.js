@@ -4,7 +4,7 @@
    ------------------------------------------------------------
    Comprueba que el servidor quedó bien puesto en internet.
 
-       node torneos/servidor/worker/verificar-despliegue.js https://torneos-ff.tu-usuario.workers.dev
+       node servidor/worker/verificar-despliegue.js https://torneos-ff.tu-usuario.workers.dev
 
    No pide ningún secreto: solo mira desde fuera, como lo haría
    cualquiera. Lo único que no puede comprobar solo es si el

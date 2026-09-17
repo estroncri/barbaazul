@@ -1,90 +1,20 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Torneos FF | Torneos de Free Fire con premios reales</title>
-
-<!-- SEO -->
-<meta name="description" content="Plataforma de torneos de Free Fire: conecta tu cuenta, compra tu cupo, mira los participantes inscritos, la sala y los resultados. Premios y retiros por Nequi o Bancolombia.">
-<meta name="keywords" content="torneos free fire, free fire colombia, torneos con premios, scrims free fire, torneos ff">
-<meta name="robots" content="index, follow">
-
-<!-- Open Graph -->
-<meta property="og:type" content="website">
-<meta property="og:title" content="Torneos FF | Torneos de Free Fire">
-<meta property="og:description" content="Compra tu cupo, compite y retira tus premios. Participantes, sala y resultados públicos.">
-<meta property="og:locale" content="es_CO">
-<meta property="og:image" content="img/portada.jpg">
-
-<meta name="theme-color" content="#000000">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<link rel="icon" href="img/logo.png">
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/iconos.css">
-<link rel="stylesheet" href="css/estilos.css">
+<meta charset="utf-8">
+<!-- La plataforma se mudó a la raíz del sitio. Esto queda para que los
+     enlaces que ya se compartieron por WhatsApp sigan llevando a alguna
+     parte en vez de a un "página no encontrada". -->
+<title>Torneos FF</title>
+<link rel="canonical" href="../">
+<meta http-equiv="refresh" content="0; url=../">
+<script>
+    /* Se conserva lo que venga después del #, que es la pantalla concreta
+       que alguien compartió: un torneo, la billetera, el registro. */
+    location.replace('../' + (location.hash || ''));
+</script>
 </head>
-<body>
-
-<!-- PANTALLA DE CARGA -->
-<div id="carga" aria-hidden="true">
-    <div style="text-align:center">
-        <img src="img/logo.svg" alt="" class="logo-img">
-        <div class="barra"><i></i></div>
-    </div>
-</div>
-
-<div class="bg-fx" aria-hidden="true"></div>
-<canvas id="brasas" aria-hidden="true"></canvas>
-<div class="bg-grid" aria-hidden="true"></div>
-
-<!-- NAV -->
-<header class="nav">
-    <div class="nav-inner">
-        <a href="#/" class="brand">
-            <img src="img/logo.svg" alt="" class="logo-img">
-            TORNEOS <span class="grad-oro">FF</span>
-        </a>
-        <nav class="nav-links" id="navLinks"></nav>
-        <div class="nav-right" id="navRight"></div>
-        <button class="burger" id="burger" aria-label="Menú"><i class="bi bi-list"></i></button>
-    </div>
-</header>
-<nav class="drawer" id="drawer"></nav>
-<div class="progreso" aria-hidden="true"></div>
-
-<main id="app" class="view">
-    <div class="wrap"><div class="skeleton"></div></div>
-</main>
-
-<footer class="wrap">
-    <img src="img/logo.svg" alt="" class="pie-logo logo-img">
-    <div class="pie-marca">TORNEOS <span class="grad-oro">FF</span></div>
-    <p>Torneos de Free Fire para la comunidad. Los avisos y encuestas salen en el grupo de WhatsApp;
-    las inscripciones, la sala y los resultados se manejan aquí.</p>
-    <p>No estamos afiliados ni patrocinados por Garena. Free Fire es una marca de Garena.</p>
-    <div class="pie-enlaces">
-        <a href="#/torneos">Torneos</a>
-        <a href="#/reglas">Reglas</a>
-        <a href="#/billetera">Billetera</a>
-        <a href="../index.html">Barbería Barba Azul</a>
-    </div>
-</footer>
-
-<div class="demo-strip">
-    <b>Versión demo:</b> los pagos y la verificación de cuenta están simulados en el navegador (nada de dinero real todavía).
-</div>
-
-<div class="toast-zone" id="toasts" aria-live="polite"></div>
-
-<script src="js/config.js"></script>
-<script src="js/efectos.js"></script>
-<script src="js/perfil-ff.js"></script>
-<script src="js/store.js"></script>
-<script src="js/store-api.js"></script>
-<script src="js/app.js"></script>
+<body style="background:#000;color:#ffa83c;font-family:system-ui,sans-serif;text-align:center;padding:60px 20px">
+    <p>Torneos FF se mudó. <a href="../" style="color:#ff7a18">Entra aquí</a>.</p>
 </body>
 </html>

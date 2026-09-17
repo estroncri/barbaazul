@@ -348,7 +348,7 @@ console.log(`
   1. En Wompi → Desarrollo → Programadores → URL de Eventos:
        ${url || 'https://tu-servidor.workers.dev'}/api/wompi/eventos
 
-  2. En torneos/js/config.js:
+  2. En js/config.js:
        api: '${url || 'https://tu-servidor.workers.dev'}/api'
      y subirlo, para que la página use este servidor.
 ──────────────────────────────────────────────────────────────
@@ -362,5 +362,5 @@ if (process.env.GITHUB_STEP_SUMMARY) {
         `## Torneos FF desplegado\n\n**Servidor:** ${url || '(sin URL)'}\n\n` +
         `### Falta hacer una vez\n\n` +
         `1. En Wompi, URL de Eventos: \`${url}/api/wompi/eventos\`\n` +
-        `2. En \`torneos/js/config.js\`: \`api: '${url}/api'\`\n`, { flag: 'a' });
+        `2. En \`js/config.js\`: \`api: '${url}/api'\`\n`, { flag: 'a' });
 }

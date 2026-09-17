@@ -16,7 +16,7 @@ Si prefieres no seguir los pasos uno por uno, hay un instalador que hace todo
 lo de abajo y te va preguntando lo que necesita:
 
 ```bash
-cd torneos/servidor/worker
+cd servidor/worker
 npm install
 node instalar.mjs
 ```
@@ -39,7 +39,7 @@ cada paso.
 2. En tu computador, dentro de la carpeta del proyecto:
 
 ```bash
-cd torneos/servidor/worker
+cd servidor/worker
 npm install            # baja wrangler, la herramienta de Cloudflare
 npx wrangler login     # abre el navegador para autorizar
 ```
@@ -148,7 +148,7 @@ y **Guardar**. Sin esto, el saldo nunca se acredita solo.
 
 ## 7. Conectar la página
 
-En `torneos/js/config.js`:
+En `js/config.js`:
 
 ```js
 api: 'https://torneos-ff.tu-usuario.workers.dev/api'

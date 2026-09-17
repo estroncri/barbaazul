@@ -11,7 +11,7 @@ pip install fonttools brotli
 npm pack bootstrap-icons@1.11.3 && tar -xzf bootstrap-icons-1.11.3.tgz
 
 # 1. Lista de iconos usados en el código:
-grep -oh "bi bi-[a-z0-9-]*" torneos/js/*.js torneos/index.html | sed 's/bi bi-//' | sort -u
+grep -oh "bi bi-[a-z0-9-]*" js/*.js index.html | sed 's/bi bi-//' | sort -u
 
 # 2. Sacar sus códigos de package/font/bootstrap-icons.json y recortar la fuente:
 python3 -m fontTools.subset package/font/fonts/bootstrap-icons.woff2 \

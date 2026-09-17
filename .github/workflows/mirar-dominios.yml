@@ -22,5 +22,5 @@ jobs:
         with:
           node-version: '22'
       - name: Preguntar al registro
-        working-directory: torneos/servidor/worker
+        working-directory: servidor/worker
         run: node mirar-dominios.mjs ${{ inputs.dominios }}

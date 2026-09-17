@@ -15,7 +15,7 @@ python3 -m http.server 8000
 # luego: http://localhost:8000/torneos/
 ```
 
-O, ya publicado en GitHub Pages: `https://estroncri.github.io/barbaazul/torneos/`
+O, ya publicado en GitHub Pages: `https://estroncri.github.io/barbaazul/`
 
 ### Cuentas de prueba
 
@@ -63,7 +63,7 @@ Workers + D1. Gratis, sin tarjeta, y los datos no se borran nunca.
 Para probarlo en tu computador, el mismo código corre sobre SQLite:
 
 ```bash
-ADMIN_FF_UID=tu-id node torneos/servidor/worker/servidor-local.mjs
+ADMIN_FF_UID=tu-id node servidor/worker/servidor-local.mjs
 # y en js/config.js →  api: 'http://localhost:8790/api'
 ```
 

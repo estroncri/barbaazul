@@ -6,7 +6,7 @@
    mentira construido sobre node:sqlite. Así se prueban las
    reglas de dinero sin desplegar nada ni gastar cuota.
 
-       node torneos/servidor/worker/probar.mjs
+       node servidor/worker/probar.mjs
    ============================================================ */
 
 import { DatabaseSync } from 'node:sqlite';

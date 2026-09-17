@@ -11,7 +11,7 @@
                servidor. Es lo que hay que usar en producción.
 
    Para probar en tu computador:
-       node torneos/servidor/worker/servidor-local.mjs
+       node servidor/worker/servidor-local.mjs
        api: 'http://localhost:8790/api'
    ============================================================ */
 

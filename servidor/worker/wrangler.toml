@@ -1,7 +1,7 @@
 # Torneos FF — configuración de Cloudflare Workers
 #
 # Desplegar:
-#   cd torneos/servidor/worker
+#   cd servidor/worker
 #   npx wrangler d1 create torneos-ff        # copia el database_id que imprime
 #   npx wrangler d1 migrations apply torneos-ff --remote
 #   npx wrangler secret put ADMIN_PASS       # y los demás secretos
@@ -20,7 +20,7 @@ database_id = "PON_AQUI_EL_ID_QUE_TE_DE_WRANGLER"
 ORIGENES = "https://estroncri.github.io"
 MIN_RECARGA = "1000"
 MIN_RETIRO = "10000"
-WOMPI_REDIRECT = "https://estroncri.github.io/barbaazul/torneos/#/billetera"
+WOMPI_REDIRECT = "https://estroncri.github.io/barbaazul/#/billetera"
 
 # Los secretos NO van aquí. Se cargan uno por uno con:
 #   npx wrangler secret put ADMIN_FF_UID

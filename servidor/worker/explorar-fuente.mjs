@@ -26,7 +26,7 @@ if (!plantilla || !uid) {
 
 const url = plantilla.replace('{uid}', uid).replace('{region}', 'us').replace('{REGION}', 'US');
 const origen = new URL(url).origin;
-const cabeceras = { 'User-Agent': 'TorneosFF/1.0 (+https://estroncri.github.io/barbaazul/torneos/)' };
+const cabeceras = { 'User-Agent': 'TorneosFF/1.0 (+https://estroncri.github.io/barbaazul/)' };
 
 console.log(`\n▸ Explorando ${url}\n`);
 

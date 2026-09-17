@@ -14,7 +14,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'torneos/servidor/worker/**'
+      - 'servidor/worker/**'
 
 jobs:
   desplegar:
@@ -37,15 +37,15 @@ jobs:
           fi
 
       - name: Instalar wrangler
-        working-directory: torneos/servidor/worker
+        working-directory: servidor/worker
         run: npm install --no-audit --no-fund
 
       - name: Comprobar las reglas del dinero antes de publicar
-        working-directory: torneos/servidor/worker
+        working-directory: servidor/worker
         run: node probar.mjs
 
       - name: Desplegar
-        working-directory: torneos/servidor/worker
+        working-directory: servidor/worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -66,7 +66,7 @@ jobs:
         run: node ci-desplegar.mjs
 
       - name: Comprobar que el servidor quedó bien puesto
-        working-directory: torneos/servidor/worker
+        working-directory: servidor/worker
         env:
           SITIO: ${{ secrets.SITIO }}
         run: node verificar-despliegue.js "$SERVIDOR"

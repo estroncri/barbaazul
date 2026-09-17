@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: '22'
       - name: Preguntar a todos los servicios
-        working-directory: torneos/servidor/worker
+        working-directory: servidor/worker
         env:
           FF_API_KEY: ${{ secrets.FF_API_KEY }}
           PLANTILLA: ${{ inputs.plantilla }}
@@ -36,5 +36,5 @@ jobs:
 
       - name: Explorar una página como fuente
         if: inputs.explorar != ''
-        working-directory: torneos/servidor/worker
+        working-directory: servidor/worker
         run: node explorar-fuente.mjs "${{ inputs.explorar }}" "${{ inputs.uid }}"

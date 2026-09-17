@@ -50,7 +50,7 @@ jobs:
           node-version: '22'
 
       - name: Crear el torneo
-        working-directory: torneos/servidor/worker
+        working-directory: servidor/worker
         env:
           ADMIN_FF_UID: ${{ secrets.ADMIN_FF_UID }}
           ADMIN_PASS: ${{ secrets.ADMIN_PASS }}

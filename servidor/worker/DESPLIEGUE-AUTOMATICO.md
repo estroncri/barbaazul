@@ -89,7 +89,7 @@ URL de Eventos:
 https://torneos-ff.estroncri.workers.dev/api/wompi/eventos
 ```
 
-**b) Conectar la página.** Ya está hecho: `torneos/js/config.js` apunta a
+**b) Conectar la página.** Ya está hecho: `js/config.js` apunta a
 
 ```js
 api: 'https://torneos-ff.estroncri.workers.dev/api'
@@ -102,7 +102,7 @@ api: 'https://torneos-ff.estroncri.workers.dev/api'
 Con el repositorio descargado:
 
 ```bash
-node torneos/servidor/worker/verificar-despliegue.js https://torneos-ff.estroncri.workers.dev
+node servidor/worker/verificar-despliegue.js https://torneos-ff.estroncri.workers.dev
 ```
 
 Y después la prueba de verdad: entra con tu cuenta, crea un torneo, y desde otro

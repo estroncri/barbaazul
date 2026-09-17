@@ -6,7 +6,7 @@
        node torneos/servidor/mock-perfil.js
        # queda en http://localhost:8787/perfil?uid=1890109056&region=us
 
-   Luego, en torneos/js/store.js:
+   Luego, en js/store.js:
        perfilApi: 'http://localhost:8787/perfil'
    ============================================================ */
 

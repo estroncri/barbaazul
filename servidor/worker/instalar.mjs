@@ -4,7 +4,7 @@
    ------------------------------------------------------------
    Hace todo el despliegue en Cloudflare de una sentada:
 
-       cd torneos/servidor/worker
+       cd servidor/worker
        npm install
        node instalar.mjs
 
@@ -58,7 +58,7 @@ function cambiarValor(texto, clave, nuevaLinea) {
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const RAIZ = resolve(AQUI, '../../..');              // la carpeta del repositorio
-const CONFIG_WEB = join(RAIZ, 'torneos/js/config.js');
+const CONFIG_WEB = join(RAIZ, 'js/config.js');
 const WRANGLER_TOML = join(AQUI, 'wrangler.toml');
 const SIMULAR = process.argv.includes('--simular');
 
@@ -78,7 +78,7 @@ if (!process.stdin.isTTY && !process.argv.includes('--sin-tty')) {
   Este instalador hay que correrlo en una consola normal, escribiendo tú
   las respuestas. Ábrelo así:
 
-      cd torneos/servidor/worker
+      cd servidor/worker
       node instalar.mjs
 `);
     process.exit(1);
@@ -252,7 +252,7 @@ ${SIMULAR ? '\n  MODO SIMULACIÓN: no se toca nada.\n' : ''}`);
         c.error(`No encontré la línea "api" en config.js. Ponla a mano:  api: '${url}/api'`);
     } else {
         if (!SIMULAR) writeFileSync(CONFIG_WEB, cfg.texto);
-        c.ok(`torneos/js/config.js → ${url}/api`);
+        c.ok(`js/config.js → ${url}/api`);
     }
 
     /* ---- 7. Comprobar ---- */
@@ -275,7 +275,7 @@ ${SIMULAR ? '\n  MODO SIMULACIÓN: no se toca nada.\n' : ''}`);
 
   2. Sube el cambio de config.js a GitHub:
 
-       git add torneos/js/config.js
+       git add js/config.js
        git commit -m "conectar la página con el servidor"
        git push
 

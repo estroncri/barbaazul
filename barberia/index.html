@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbería Barba Azul | Barranquilla — Cortes, Barba y Zona Gamer</title>
+
+    <!-- SEO -->
+    <meta name="description" content="Barbería Barba Azul en Barranquilla. 10+ años de experiencia, 5 barberos expertos, zona gamer con Xbox. Cortes, barba, diseños y más. Agenda tu cita por WhatsApp.">
+    <meta name="keywords" content="barbería, barba azul, barranquilla, corte de cabello, barba, barbero, zona gamer, barbershop, olaya, colombia">
+    <meta name="author" content="Barbería Barba Azul">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://estroncri.github.io/barbaazul/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Barbería Barba Azul | Barranquilla">
+    <meta property="og:description" content="10+ años de experiencia. Cortes, barba, diseños y zona gamer. Agenda tu cita ahora.">
+    <meta property="og:image" content="https://estroncri.github.io/barbaazul/logo-barbaazul.png">
+    <meta property="og:url" content="https://estroncri.github.io/barbaazul/">
+    <meta property="og:locale" content="es_CO">
+
+    <!-- Theme -->
+    <meta name="theme-color" content="#060a14">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="logo-barbaazul.png">
+    <link rel="apple-touch-icon" href="logo-barbaazul.png">
+
+    <!-- Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Teko:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- NOSCRIPT -->
+    <noscript>
+        <div class="noscript-msg">
+            Para una mejor experiencia, por favor activa JavaScript en tu navegador.
+        </div>
+    </noscript>
+
+    <!-- PRELOADER -->
+    <div class="preloader" id="preloader" aria-hidden="true">
+        <div class="preloader-logo">BARBA <span>AZUL</span></div>
+    </div>
+
+    <!-- CURSOR GLOW -->
+    <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+
+    <!-- PARTICLES -->
+    <div class="particles" id="particles" aria-hidden="true"></div>
+
+    <!-- PAGE WRAPPER — previene overflow horizontal en móvil -->
+    <div class="page-wrapper">
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="navbar" aria-label="Navegación principal">
+        <a href="#" class="nav-logo" aria-label="Barba Azul - Inicio">BARBA <span>AZUL</span></a>
+        <div class="nav-links" id="navLinks" role="navigation">
+            <a href="#inicio">Inicio</a>
+            <a href="#servicios">Servicios</a>
+            <a href="#nosotros">Nosotros</a>
+            <a href="#equipo">Equipo</a>
+            <a href="#zona-gamer">Gamer</a>
+            <a href="#contacto">Contacto</a>
+        </div>
+        <a href="https://wa.me/573007002929?text=Hola%2C%20quiero%20agendar%20una%20cita" class="nav-cta nav-cta-desktop" target="_blank" rel="noopener">
+            <i class="bi bi-whatsapp"></i> Reservar Cita
+        </a>
+        <button class="hamburger" id="hamburger" aria-label="Abrir menú" aria-expanded="false">
+            <span></span><span></span><span></span>
+        </button>
+    </nav>
+
+    <!-- MOBILE MENU OVERLAY (fuera del navbar para evitar bug de backdrop-filter) -->
+    <div class="mobile-menu-overlay" id="mobileMenu">
+        <a href="#inicio">Inicio</a>
+        <a href="#servicios">Servicios</a>
+        <a href="#nosotros">Nosotros</a>
+        <a href="#equipo">Equipo</a>
+        <a href="#zona-gamer">Gamer</a>
+        <a href="#contacto">Contacto</a>
+        <a href="https://wa.me/573007002929?text=Hola%2C%20quiero%20agendar%20una%20cita" class="nav-cta-mobile" target="_blank" rel="noopener">
+            <i class="bi bi-whatsapp"></i> Reservar Cita
+        </a>
+    </div>
+
+    <!-- HERO -->
+    <section class="hero" id="inicio">
+        <div class="hero-bg"></div>
+        <div class="hero-overlay-lines" aria-hidden="true"></div>
+        <div class="hero-sparkles" id="heroSparkles" aria-hidden="true"></div>
+        <div class="hero-content">
+            <div class="hero-badge">
+                <i class="bi bi-circle-fill"></i>
+                Barranquilla, Colombia &bull; Est. 2014
+            </div>
+            <br>
+            <img src="logo-barbaazul-3d.png" alt="Logo Barbería Barba Azul" class="hero-logo" width="650" height="400">
+            <p class="hero-subtitle">Barbería &bull; Videojuegos &bull; Experiencia Única</p>
+            <div class="hero-buttons">
+                <a href="https://wa.me/573007002929?text=Hola%2C%20quiero%20agendar%20una%20cita" target="_blank" rel="noopener" class="btn-primary-gold">
+                    <i class="bi bi-calendar-check"></i> Agendar Cita
+                </a>
+                <a href="#servicios" class="btn-outline-gold">
+                    <i class="bi bi-scissors"></i> Ver Servicios
+                </a>
+            </div>
+        </div>
+        <div class="hero-scroll" aria-hidden="true">
+            <span>Scroll</span>
+            <div class="scroll-line"></div>
+        </div>
+    </section>
+
+    <!-- STATS BAR -->
+    <div class="stats-bar" aria-label="Estadísticas de la barbería">
+        <div class="stat-item reveal">
+            <div class="stat-number" data-target="10">0<span class="plus">+</span></div>
+            <div class="stat-label">Años de Experiencia</div>
+        </div>
+        <div class="stat-item reveal">
+            <div class="stat-number" data-target="5">0</div>
+            <div class="stat-label">Barberos Expertos</div>
+        </div>
+        <div class="stat-item reveal">
+            <div class="stat-number" data-target="15000">0<span class="plus">+</span></div>
+            <div class="stat-label">Clientes Satisfechos</div>
+        </div>
+        <div class="stat-item reveal">
+            <div class="stat-number" data-target="7">0</div>
+            <div class="stat-label">Días a la Semana</div>
+        </div>
+    </div>
+
+    <!-- SERVICES -->
+    <section class="services section-padding section-bg-animated gradient-mesh" id="servicios">
+        <div class="bg-blob bg-blob-1" aria-hidden="true"></div>
+        <div class="float-ring float-ring-1" aria-hidden="true"></div>
+        <div class="float-ring float-ring-2" aria-hidden="true"></div>
+        <div class="section-header reveal" style="position:relative;z-index:1;">
+            <div class="section-tag">
+                <i class="bi bi-scissors"></i> Nuestros Servicios
+            </div>
+            <h2 class="section-title">El Arte del <span class="accent">Grooming</span></h2>
+        </div>
+        <div class="services-grid">
+            <div class="service-card reveal">
+                <div class="glow" aria-hidden="true"></div>
+                <div class="service-icon"><i class="bi bi-scissors"></i></div>
+                <h3>Corte de Cabello</h3>
+                <p>Fades, taper, cortes clásicos y modernos. Cada corte es una obra de arte personalizada.</p>
+            </div>
+            <div class="service-card reveal">
+                <div class="glow" aria-hidden="true"></div>
+                <div class="service-icon"><i class="bi bi-brush"></i></div>
+                <h3>Arreglo de Barba</h3>
+                <p>Perfilado profesional, arreglo completo y diseño de barba para un look impecable.</p>
+            </div>
+            <div class="service-card reveal">
+                <div class="glow" aria-hidden="true"></div>
+                <div class="service-icon"><i class="bi bi-star"></i></div>
+                <h3>Combo Corte + Barba</h3>
+                <p>Nuestro servicio más popular. La combinación perfecta para una transformación total.</p>
+            </div>
+            <div class="service-card reveal">
+                <div class="glow" aria-hidden="true"></div>
+                <div class="service-icon"><i class="bi bi-palette"></i></div>
+                <h3>Diseño Personalizado</h3>
+                <p>Diseños creativos y detalles únicos que reflejan tu personalidad y estilo.</p>
+            </div>
+            <div class="service-card reveal">
+                <div class="glow" aria-hidden="true"></div>
+                <div class="service-icon"><i class="bi bi-eye"></i></div>
+                <h3>Cejas y Detalles</h3>
+                <p>Perfilado de cejas y detalles para complementar tu look con precisión.</p>
+            </div>
+            <div class="service-card reveal">
+                <div class="glow" aria-hidden="true"></div>
+                <div class="service-icon"><i class="bi bi-droplet"></i></div>
+                <h3>Limpieza Facial</h3>
+                <p>Tratamiento facial profesional para refrescar y rejuvenecer tu piel.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="about section-padding" id="nosotros">
+        <div class="about-grid">
+            <div class="about-images reveal-left">
+                <img src="barbershop-front.png" alt="Fachada de Barbería Barba Azul en Barranquilla" class="about-img-main" loading="lazy" width="600" height="400">
+                <img src="logo-barbaazul-3d.png" alt="Logo Barba Azul 3D" class="about-img-secondary" loading="lazy" width="300" height="300">
+                <div class="about-badge-float">
+                    <div class="number">10+</div>
+                    <div class="text">Años</div>
+                </div>
+            </div>
+            <div class="about-content reveal-right">
+                <div class="section-tag">
+                    <i class="bi bi-info-circle"></i> Sobre Nosotros
+                </div>
+                <h2 class="section-title" style="text-align:left; margin-bottom:25px;">
+                    Más que una barbería,<br>una <span class="accent">experiencia</span>
+                </h2>
+                <p class="about-desc">
+                    Desde 2014, Barbería Barba Azul ha sido el referente del grooming masculino en el Barrio Olaya de Barranquilla. Combinamos las técnicas clásicas de barbería con las tendencias más modernas para ofrecerte un servicio de primera clase.
+                </p>
+                <p class="about-desc">
+                    Aquí no vienes solo a cortarte… vienes a pasarla bien. Con nuestra zona gamer, ambiente relajado y barberos expertos, cada visita es una experiencia única.
+                </p>
+                <div class="about-features">
+                    <div class="about-feature">
+                        <i class="bi bi-check-circle-fill"></i>
+                        Barberos certificados
+                    </div>
+                    <div class="about-feature">
+                        <i class="bi bi-check-circle-fill"></i>
+                        Productos premium
+                    </div>
+                    <div class="about-feature">
+                        <i class="bi bi-check-circle-fill"></i>
+                        Zona Gamer con Xbox
+                    </div>
+                    <div class="about-feature">
+                        <i class="bi bi-check-circle-fill"></i>
+                        Abierto todos los días
+                    </div>
+                </div>
+                <a href="https://wa.me/573007002929" target="_blank" rel="noopener" class="btn-primary-gold">
+                    <i class="bi bi-whatsapp"></i> Contáctanos
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- TEAM -->
+    <section class="team section-padding section-bg-animated" id="equipo">
+        <div class="bg-blob bg-blob-2" aria-hidden="true"></div>
+        <div class="bg-blob bg-blob-3" aria-hidden="true"></div>
+        <div class="float-ring float-ring-1" aria-hidden="true"></div>
+        <div class="section-header reveal" style="position:relative;z-index:1;">
+            <div class="section-tag">
+                <i class="bi bi-people"></i> Nuestro Equipo
+            </div>
+            <h2 class="section-title">Conoce a Nuestros <span class="accent">Barberos</span></h2>
+        </div>
+        <div class="team-grid">
+            <div class="barber-card reveal-scale">
+                <img src="barber-wilfredo.png" alt="Wilfredo — Barbero Senior en Barba Azul" class="barber-img" loading="lazy" width="400" height="533">
+                <div class="barber-overlay">
+                    <h3>Wilfredo</h3>
+                    <span class="role">Barbero Senior</span>
+                </div>
+            </div>
+            <div class="barber-card reveal-scale">
+                <img src="barber-johan.png" alt="Johan — Barbero Experto en Barba Azul" class="barber-img" loading="lazy" width="400" height="533">
+                <div class="barber-overlay">
+                    <h3>Johan</h3>
+                    <span class="role">Barbero Experto</span>
+                </div>
+            </div>
+            <div class="barber-card reveal-scale">
+                <img src="barber-jairo.png" alt="Jairo — Barbero Experto en Barba Azul" class="barber-img" loading="lazy" width="400" height="533">
+                <div class="barber-overlay">
+                    <h3>Jairo</h3>
+                    <span class="role">Barbero Experto</span>
+                </div>
+            </div>
+            <div class="barber-card reveal-scale">
+                <img src="barber-jesus.png" alt="Jesús — Barbero Experto en Barba Azul" class="barber-img" loading="lazy" width="400" height="533">
+                <div class="barber-overlay">
+                    <h3>Jesús</h3>
+                    <span class="role">Barbero Experto</span>
+                </div>
+            </div>
+            <div class="barber-card reveal-scale">
+                <img src="barber-daniel.png" alt="Daniel — Barbero Experto en Barba Azul" class="barber-img" loading="lazy" width="400" height="533">
+                <div class="barber-overlay">
+                    <h3>Daniel</h3>
+                    <span class="role">Barbero Experto</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- GAMER ZONE -->
+    <section class="gamer section-padding" id="zona-gamer">
+        <div class="gamer-grid">
+            <div class="gamer-content reveal-left">
+                <div class="section-tag">
+                    <i class="bi bi-controller"></i> Entretenimiento
+                </div>
+                <h2>Zona <span class="accent">Gamer</span></h2>
+                <p>
+                    Mientras esperas tu turno, disfruta de nuestra zona gamer equipada con Xbox.
+                    También puedes venir solo a jugar alquilando el espacio por tiempo.
+                    ¡Aquí la diversión es parte de la experiencia!
+                </p>
+                <div class="gamer-features">
+                    <div class="gamer-feature">
+                        <i class="bi bi-controller"></i>
+                        <span>Xbox disponible para todos</span>
+                    </div>
+                    <div class="gamer-feature">
+                        <i class="bi bi-clock"></i>
+                        <span>Alquiler por tiempo</span>
+                    </div>
+                    <div class="gamer-feature">
+                        <i class="bi bi-people"></i>
+                        <span>Juega con tus amigos</span>
+                    </div>
+                    <div class="gamer-feature">
+                        <i class="bi bi-wifi"></i>
+                        <span>WiFi de alta velocidad</span>
+                    </div>
+                </div>
+                <a href="https://wa.me/573007002929?text=Hola%2C%20quiero%20info%20de%20la%20zona%20gamer" target="_blank" rel="noopener" class="btn-primary-gold">
+                    <i class="bi bi-controller"></i> Más Info
+                </a>
+            </div>
+            <div class="gamer-img-container reveal-right">
+                <img src="v.png" alt="Zona Gamer con Xbox en Barbería Barba Azul" loading="lazy" width="600" height="450">
+            </div>
+        </div>
+    </section>
+
+    <!-- INSTAGRAM SECTION -->
+    <section class="instagram-section section-padding section-bg-animated" id="instagram">
+        <div class="instagram-bg-texture" aria-hidden="true"></div>
+        <div class="bg-blob bg-blob-3" aria-hidden="true"></div>
+        <div class="section-header reveal" style="position:relative;z-index:1;">
+            <div class="section-tag">
+                <i class="bi bi-instagram"></i> Síguenos
+            </div>
+            <h2 class="section-title">Nuestro <span class="accent">Instagram</span></h2>
+            <p style="color:var(--gray); margin-top:12px; font-size:0.95rem;">@barba_azul_ &mdash; Contenido exclusivo, cortes y más</p>
+        </div>
+        <div class="instagram-grid">
+            <!-- Instagram Embed -->
+            <div class="instagram-embed-wrapper reveal-left">
+                <blockquote class="instagram-media" data-instgrm-captioned data-instgrm-permalink="https://www.instagram.com/reel/DEfojlWPqJQ/?utm_source=ig_embed&amp;utm_campaign=loading" data-instgrm-version="14" style="background:#FFF; border:0; border-radius:20px; margin:0; max-width:540px; min-width:280px; padding:0; width:100%;">
+                    <div style="padding:16px;">
+                        <a href="https://www.instagram.com/reel/DEfojlWPqJQ/?utm_source=ig_embed&amp;utm_campaign=loading" style="background:#FFFFFF; line-height:0; padding:0 0; text-align:center; text-decoration:none; width:100%;" target="_blank" rel="noopener">
+                            <div style="display:flex; flex-direction:row; align-items:center;">
+                                <div style="background-color:#F4F4F4; border-radius:50%; flex-grow:0; height:40px; margin-right:14px; width:40px;"></div>
+                                <div style="display:flex; flex-direction:column; flex-grow:1; justify-content:center;">
+                                    <div style="background-color:#F4F4F4; border-radius:4px; flex-grow:0; height:14px; margin-bottom:6px; width:100px;"></div>
+                                    <div style="background-color:#F4F4F4; border-radius:4px; flex-grow:0; height:14px; width:60px;"></div>
+                                </div>
+                            </div>
+                            <div style="padding:19% 0;"></div>
+                            <div style="display:block; height:50px; margin:0 auto 12px; width:50px;">
+                                <svg width="50px" height="50px" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><g stroke="none" fill="none"><g transform="translate(-511,-20)" fill="#000"><path d="M556.869,30.41 C554.814,30.41 553.148,32.076 553.148,34.131 C553.148,36.186 554.814,37.852 556.869,37.852 C558.924,37.852 560.59,36.186 560.59,34.131 C560.59,32.076 558.924,30.41 556.869,30.41 M541,60.657 C535.114,60.657 530.342,55.887 530.342,50 C530.342,44.114 535.114,39.342 541,39.342 C546.887,39.342 551.658,44.114 551.658,50 C551.658,55.887 546.887,60.657 541,60.657 M541,33.886 C532.1,33.886 524.886,41.1 524.886,50 C524.886,58.899 532.1,66.113 541,66.113 C549.9,66.113 557.115,58.899 557.115,50 C557.115,41.1 549.9,33.886 541,33.886 M565.378,62.101 C565.244,65.022 564.756,66.606 564.346,67.663 C563.803,69.06 563.154,70.057 562.106,71.106 C561.058,72.155 560.06,72.803 558.662,73.347 C557.607,73.757 556.021,74.244 553.102,74.378 C549.944,74.521 548.997,74.552 541,74.552 C533.003,74.552 532.056,74.521 528.898,74.378 C525.979,74.244 524.393,73.757 523.338,73.347 C521.94,72.803 520.942,72.155 519.894,71.106 C518.846,70.057 518.197,69.06 517.654,67.663 C517.244,66.606 516.755,65.022 516.623,62.101 C516.479,58.943 516.448,57.996 516.448,50 C516.448,42.003 516.479,41.056 516.623,37.899 C516.755,34.978 517.244,33.391 517.654,32.338 C518.197,30.938 518.846,29.942 519.894,28.894 C520.942,27.846 521.94,27.196 523.338,26.654 C524.393,26.244 525.979,25.756 528.898,25.623 C532.057,25.479 533.004,25.448 541,25.448 C548.997,25.448 549.943,25.479 553.102,25.623 C556.021,25.756 557.607,26.244 558.662,26.654 C560.06,27.196 561.058,27.846 562.106,28.894 C563.154,29.942 563.803,30.938 564.346,32.338 C564.756,33.391 565.244,34.978 565.378,37.899 C565.522,41.056 565.552,42.003 565.552,50 C565.552,57.996 565.522,58.943 565.378,62.101 M570.82,37.631 C570.674,34.438 570.167,32.258 569.425,30.349 C568.659,28.377 567.633,26.702 565.965,25.035 C564.297,23.368 562.623,22.342 560.652,21.575 C558.743,20.834 556.562,20.326 553.369,20.18 C550.169,20.033 549.148,20 541,20 C532.853,20 531.831,20.033 528.631,20.18 C525.438,20.326 523.257,20.834 521.349,21.575 C519.376,22.342 517.703,23.368 516.035,25.035 C514.368,26.702 513.342,28.377 512.574,30.349 C511.834,32.258 511.326,34.438 511.181,37.631 C511.035,40.831 511,41.851 511,50 C511,58.147 511.035,59.17 511.181,62.369 C511.326,65.562 511.834,67.743 512.574,69.651 C513.342,71.625 514.368,73.296 516.035,74.965 C517.703,76.634 519.376,77.658 521.349,78.425 C523.257,79.167 525.438,79.673 528.631,79.82 C531.831,79.965 532.853,80.001 541,80.001 C549.148,80.001 550.169,79.965 553.369,79.82 C556.562,79.673 558.743,79.167 560.652,78.425 C562.623,77.658 564.297,76.634 565.965,74.965 C567.633,73.296 568.659,71.625 569.425,69.651 C570.167,67.743 570.674,65.562 570.82,62.369 C570.966,59.17 571,58.147 571,50 C571,41.851 570.966,40.831 570.82,37.631"></path></g></g></svg>
+                            </div>
+                            <div style="padding-top:8px;">
+                                <div style="color:#3897f0; font-family:Arial,sans-serif; font-size:14px; font-weight:550;">Ver esta publicación en Instagram</div>
+                            </div>
+                        </a>
+                    </div>
+                </blockquote>
+            </div>
+            <!-- Profile + CTA -->
+            <div class="instagram-cta reveal-right">
+                <div class="instagram-profile">
+                    <div class="instagram-avatar">
+                        <div class="instagram-avatar-inner">
+                            <img src="logo-barbaazul-3d.png" alt="Barba Azul" loading="lazy" width="50" height="50">
+                        </div>
+                    </div>
+                    <div class="instagram-handle" style="text-align:left;">
+                        <h3>@barba_azul_</h3>
+                        <p>Barbería & Videojuegos</p>
+                    </div>
+                </div>
+                <a href="https://www.instagram.com/barba_azul_/" target="_blank" rel="noopener" class="btn-primary-gold">
+                    <i class="bi bi-instagram"></i> Seguir en Instagram
+                </a>
+            </div>
+        </div>
+        <script async src="https://www.instagram.com/embed.js"></script>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <section class="testimonials section-padding section-bg-animated gradient-mesh">
+        <div class="bg-blob bg-blob-1" aria-hidden="true"></div>
+        <div class="float-ring float-ring-2" aria-hidden="true"></div>
+        <div class="section-header reveal" style="position:relative;z-index:1;">
+            <div class="section-tag">
+                <i class="bi bi-chat-quote"></i> Testimonios
+            </div>
+            <h2 class="section-title">Lo que Dicen Nuestros <span class="accent">Clientes</span></h2>
+        </div>
+        <div class="testimonial-slider">
+            <div class="testimonial-card reveal">
+                <i class="bi bi-quote testimonial-quote-icon" aria-hidden="true"></i>
+                <div class="testimonial-stars" aria-label="5 estrellas">
+                    <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                </div>
+                <p class="testimonial-text">"La mejor barbería de Barranquilla. Los barberos son unos artistas y el ambiente es increíble. La zona gamer es un plus genial."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">C</div>
+                    <div>
+                        <div class="testimonial-name">Carlos M.</div>
+                        <div class="testimonial-role">Cliente frecuente</div>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card reveal">
+                <i class="bi bi-quote testimonial-quote-icon" aria-hidden="true"></i>
+                <div class="testimonial-stars" aria-label="5 estrellas">
+                    <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                </div>
+                <p class="testimonial-text">"Siempre salgo feliz de Barba Azul. El combo de corte y barba es espectacular. Los recomiendo al 100%."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">A</div>
+                    <div>
+                        <div class="testimonial-name">Andrés R.</div>
+                        <div class="testimonial-role">Cliente desde 2018</div>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card reveal">
+                <i class="bi bi-quote testimonial-quote-icon" aria-hidden="true"></i>
+                <div class="testimonial-stars" aria-label="5 estrellas">
+                    <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                </div>
+                <p class="testimonial-text">"Excelente servicio, muy profesionales. El ambiente es relajado y siempre te hacen sentir como en casa."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">D</div>
+                    <div>
+                        <div class="testimonial-name">David S.</div>
+                        <div class="testimonial-role">Cliente frecuente</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA BANNER -->
+    <div class="cta-banner reveal">
+        <h2>¿Listo para un Cambio de Look?</h2>
+        <p>Ven a Barba Azul y vive la experiencia. Agenda tu cita ahora.</p>
+        <a href="https://wa.me/573007002929?text=Hola%2C%20quiero%20agendar%20una%20cita" target="_blank" rel="noopener" class="btn-dark">
+            <i class="bi bi-whatsapp"></i> Agendar por WhatsApp
+        </a>
+    </div>
+
+    <!-- CONTACT -->
+    <section class="contact section-padding" id="contacto">
+        <div class="section-header reveal">
+            <div class="section-tag">
+                <i class="bi bi-geo-alt"></i> Encuéntranos
+            </div>
+            <h2 class="section-title">Ubicación y <span class="accent">Contacto</span></h2>
+        </div>
+        <div class="contact-grid">
+            <div class="contact-info reveal-left">
+                <div class="contact-item">
+                    <div class="contact-icon"><i class="bi bi-geo-alt-fill"></i></div>
+                    <div>
+                        <h4>Dirección</h4>
+                        <p>Calle 71 #33-47, Barrio Olaya<br>Barranquilla, Colombia</p>
+                    </div>
+                </div>
+                <div class="contact-item">
+                    <div class="contact-icon"><i class="bi bi-clock-fill"></i></div>
+                    <div>
+                        <h4>Horario</h4>
+                        <p>Lunes a Domingo<br>9:00 AM – 8:00 PM</p>
+                    </div>
+                </div>
+                <div class="contact-item">
+                    <div class="contact-icon"><i class="bi bi-telephone-fill"></i></div>
+                    <div>
+                        <h4>Teléfono</h4>
+                        <p><a href="tel:+573007002929">+57 300 700 2929</a></p>
+                    </div>
+                </div>
+                <div class="contact-item">
+                    <div class="contact-icon"><i class="bi bi-envelope-fill"></i></div>
+                    <div>
+                        <h4>Email</h4>
+                        <p><a href="mailto:barbaazulbarranquilla@hotmail.com">barbaazulbarranquilla@hotmail.com</a></p>
+                    </div>
+                </div>
+                <div class="contact-socials">
+                    <a href="https://www.facebook.com/barberiaazul/" target="_blank" rel="noopener" class="social-link" aria-label="Facebook">
+                        <i class="bi bi-facebook"></i>
+                    </a>
+                    <a href="https://www.instagram.com/barba_azul_/" target="_blank" rel="noopener" class="social-link" aria-label="Instagram">
+                        <i class="bi bi-instagram"></i>
+                    </a>
+                    <a href="https://wa.me/573007002929" target="_blank" rel="noopener" class="social-link" aria-label="WhatsApp">
+                        <i class="bi bi-whatsapp"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="map-container reveal-right">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3916.3!2d-74.8109273!3d10.9821694!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8ef42d1693e8245d%3A0x9fb2fd1c27f73ad6!2sBarber%C3%ADa%20Barba%20Azul!5e0!3m2!1ses!2sco!4v1700000000000!5m2!1ses!2sco" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Ubicación de Barbería Barba Azul en Google Maps"></iframe>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-top">
+            <div class="footer-logo">BARBA <span>AZUL</span></div>
+            <div class="footer-links">
+                <a href="#inicio">Inicio</a>
+                <a href="#servicios">Servicios</a>
+                <a href="#equipo">Equipo</a>
+                <a href="#contacto">Contacto</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; <span id="currentYear">2025</span> Barbería Barba Azul — Barranquilla, Colombia. Todos los derechos reservados.
+        </div>
+        <script>document.getElementById('currentYear').textContent = new Date().getFullYear();</script>
+    </footer>
+
+    <!-- BACK TO TOP -->
+    <button class="back-to-top" id="backToTop" aria-label="Volver arriba">
+        <i class="bi bi-arrow-up"></i>
+    </button>
+
+    <!-- WHATSAPP FLOAT -->
+    <a href="https://wa.me/573007002929?text=Hola%2C%20quiero%20agendar%20una%20cita" target="_blank" rel="noopener" class="whatsapp-float" aria-label="Contactar por WhatsApp">
+        <i class="bi bi-whatsapp"></i>
+    </a>
+
+    </div><!-- /.page-wrapper -->
+
+    <!-- JS -->
+    <script src="script.js" defer></script>
+
+</body>
+</html>

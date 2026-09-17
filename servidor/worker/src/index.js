@@ -925,7 +925,7 @@ export async function intentarPerfil(plantilla, uidFF, region, env, esHtml) {
     /* Quien pregunta se identifica y dice para qué: si al dueño del sitio le
        molesta, que sepa a quién escribirle antes que bloquear a ciegas. */
     const cabeceras = esHtml
-        ? { Accept: 'text/html', 'User-Agent': 'TorneosFF/1.0 (+https://estroncri.github.io/barbaazul/torneos/)' }
+        ? { Accept: 'text/html', 'User-Agent': 'TorneosFF/1.0 (+https://estroncri.github.io/barbaazul/)' }
         : { Accept: 'application/json', 'User-Agent': 'TorneosFF/1.0' };
     if (env.FF_API_KEY) {
         cabeceras.Authorization = 'Bearer ' + env.FF_API_KEY;
