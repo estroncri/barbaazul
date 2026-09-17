@@ -1,0 +1,59 @@
+# Borra todo lo que se hizo probando: torneos, inscripciones y movimientos.
+#
+# Va ANTES de cambiar las llaves de Wompi a producción. El saldo de un
+# jugador es la suma de sus movimientos, y los de las pruebas valen lo
+# mismo que los de verdad: si no se borran, ese dinero inventado se puede
+# retirar como si fuera real.
+#
+# Conserva las cuentas y sus contraseñas. Lo que borra no se recupera.
+
+name: Limpiar datos de prueba
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmar:
+        description: 'Escribe BORRAR para confirmar'
+        required: true
+      borrar_cuentas:
+        description: '¿Borrar también las cuentas de jugadores? (si / no)'
+        required: false
+        default: 'no'
+
+jobs:
+  limpiar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Instalar wrangler
+        working-directory: servidor/worker
+        run: npm install --no-audit --no-fund
+
+      - name: Apuntar a la base
+        working-directory: servidor/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          ID=$(npx wrangler d1 list --json | node -e "
+            let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{
+              const j=JSON.parse(s.slice(s.indexOf('[')));
+              const b=j.find(x=>x.name==='torneos-ff');
+              process.stdout.write(b ? (b.uuid||b.database_id) : '');
+            });")
+          if [ -z "$ID" ]; then echo "No encontré la base torneos-ff."; exit 1; fi
+          sed -i "s|^database_id = .*|database_id = \"$ID\"|" wrangler.toml
+
+      - name: Limpiar
+        working-directory: servidor/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CONFIRMAR: ${{ inputs.confirmar }}
+          BORRAR_CUENTAS: ${{ inputs.borrar_cuentas }}
+        run: node limpiar-pruebas.mjs

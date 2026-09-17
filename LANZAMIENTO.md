@@ -47,7 +47,27 @@ propaga (puede tardar horas) las dos direcciones funcionan.
 
 ---
 
-## 2. Wompi en producción
+## 2. Borrar lo de las pruebas — ANTES de tocar las llaves
+
+El saldo de un jugador es la suma de sus movimientos, y los de las pruebas
+valen lo mismo que los de verdad: la base de datos no sabe que Wompi estaba
+en modo de pruebas cuando entraron.
+
+Si pasas a producción sin limpiar, ese dinero inventado se puede **retirar
+como plata real**, y tus cuentas dirán que le debes a alguien un dinero que
+nunca entró.
+
+**Actions → Limpiar datos de prueba → Run workflow**, y escribe `BORRAR` en
+la casilla de confirmación. Borra torneos, inscripciones, resultados y
+movimientos; deja las cuentas y sus contraseñas. Si también quieres borrar
+las cuentas de prueba, pon `si` en la segunda casilla: la de organizador
+nunca se toca.
+
+Lo que borra no se recupera. Hazlo con calma y antes del paso siguiente.
+
+---
+
+## 3. Wompi en producción
 
 Ahora mismo está en pruebas: los pagos van a Wompi pero no mueven dinero.
 Para cobrar de verdad hay que cambiar **las tres llaves a la vez**.
@@ -77,7 +97,7 @@ Guardar, y lanzar el despliegue.
 
 ---
 
-## 3. Tu WhatsApp
+## 4. Tu WhatsApp
 
 Sigue puesto el número de relleno `573000000000`. Guarda el tuyo como el
 secreto `ADMIN_WHATSAPP` (con indicativo, sin espacios: `573108376388`) y
@@ -86,7 +106,7 @@ verificación y de recuperación de contraseña.
 
 ---
 
-## 4. La prueba con plata de verdad
+## 5. La prueba con plata de verdad
 
 Antes de abrirlo a la gente, hazlo tú con un monto pequeño:
 
@@ -100,7 +120,7 @@ Si los cuatro pasos salen, el circuito del dinero está cerrado.
 
 ---
 
-## 5. Antes de que entre el primer jugador
+## 6. Antes de que entre el primer jugador
 
 - **Ten saldo en tu Nequi para pagar retiros.** El dinero de las
   inscripciones no llega a tu cuenta al instante: Wompi lo consolida y lo
