@@ -281,7 +281,7 @@
             El aviso de cada torneo y la encuesta del modo salen en el grupo de WhatsApp.</p>
             <div class="hero-cta reveal">
                 <a href="#/torneos" class="btn btn-fire"><i class="bi bi-trophy-fill"></i> Ver torneos</a>
-                <a href="${esc(cfg.whatsappGrupo)}" target="_blank" rel="noopener" class="btn btn-wa"><i class="bi bi-whatsapp"></i> Entrar al grupo</a>
+                ${cfg.whatsappGrupo ? `<a href="${esc(cfg.whatsappGrupo)}" target="_blank" rel="noopener" class="btn btn-wa"><i class="bi bi-whatsapp"></i> Entrar al grupo</a>` : ''}
             </div>
         </section>
 

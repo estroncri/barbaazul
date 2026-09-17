@@ -224,8 +224,9 @@ window.Store = (function () {
                 //   'https://torneos-ff-perfil.tu-usuario.workers.dev/perfil'
                 perfilApi: '',
                 regionPorDefecto: 'us',
-                whatsappGrupo: 'https://chat.whatsapp.com/XXXXXXXXXXXXXXXXX',
-                whatsappSoporte: '573001112233',
+                // Estos dos se ponen en config.js, que es donde se buscan.
+                whatsappGrupo: (window.CONFIG_TORNEOS || {}).whatsappGrupo || '',
+                whatsappSoporte: (window.CONFIG_TORNEOS || {}).whatsappSoporte || '573001112233',
                 metodosPago: ['Nequi', 'Daviplata', 'Bancolombia', 'Efecty'],
                 comision: 10, // % que se queda la plataforma sobre lo recaudado
                 minRetiro: 10000

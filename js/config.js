@@ -14,6 +14,13 @@
        node servidor/worker/servidor-local.mjs
        api: 'http://localhost:8790/api'
 
+   whatsappSoporte: el número al que le escribe un jugador si tiene un
+               problema con un pago. Con indicativo y sin signos: 573001112233
+
+   whatsappGrupo: el enlace de invitación al grupo donde avisas los torneos.
+               Vacío = no se muestra el botón, que es mejor que un botón que
+               lleva a un grupo que no existe.
+
    nombreEnWompi: el nombre con el que Wompi identifica al comercio. Si no
                es el mismo de la plataforma, el jugador se va a encontrar un
                cobro a nombre de un desconocido y va a pensar que lo
@@ -26,5 +33,7 @@
 // dirección desde fuera (una prueba, otro despliegue) sin editar este archivo.
 window.CONFIG_TORNEOS = Object.assign({
     api: 'https://torneos-ff.estroncri.workers.dev/api',
+    whatsappSoporte: '573192559674',
+    whatsappGrupo: '',
     nombreEnWompi: 'obsidiancol'
 }, window.CONFIG_TORNEOS || {});

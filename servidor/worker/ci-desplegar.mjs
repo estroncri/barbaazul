@@ -27,7 +27,13 @@ function sqlUsuario({ ffUid, nick, whatsapp, hash, sal, rol }) {
     return `INSERT INTO usuarios (id, ff_uid, nick, nivel, region, email, whatsapp, pass_hash, pass_sal, rol, verificado, creado) `
         + `VALUES ('u_${aleatorio(8)}', ${comillas(ffUid)}, ${comillas(nick)}, 0, 'us', '', ${comillas(whatsapp)}, `
         + `${comillas(hash)}, ${comillas(sal)}, ${comillas(rol)}, 1, ${comillas(new Date().toISOString())}) `
-        + `ON CONFLICT(ff_uid) DO UPDATE SET rol=excluded.rol, pass_hash=excluded.pass_hash, pass_sal=excluded.pass_sal;`;
+        /* El nick y el WhatsApp también se actualizan. Sin esto, cambiar
+           ADMIN_WHATSAPP no servía de nada en una cuenta que ya existía: el
+           despliegue decía "Organizador listo" y el número seguía siendo el
+           de relleno. Un cambio que parece aplicarse y no se aplica es peor
+           que uno que falla. */
+        + `ON CONFLICT(ff_uid) DO UPDATE SET rol=excluded.rol, nick=excluded.nick, `
+        + `whatsapp=excluded.whatsapp, pass_hash=excluded.pass_hash, pass_sal=excluded.pass_sal;`;
 }
 const ok = (t) => console.log(`  ✔ ${t}`);
 const aviso = (t) => console.log(`  ! ${t}`);
