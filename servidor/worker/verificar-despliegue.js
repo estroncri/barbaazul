@@ -102,7 +102,29 @@ async function pedir(ruta, op = {}) {
     marca(permitido === origenEsperado, `Tu página está autorizada (${origenEsperado})`,
         permitido || 'sin cabecera CORS');
 
-    /* 7. Entrar con una cuenta que no existe tiene que dar un "no", no un
+    /* 7. El sitio de verdad tiene que servir la plataforma.
+       El DNS puede apuntar bien y aun así no haber nada: falta decirle el
+       dominio a GitHub Pages, o el certificado todavía se está emitiendo.
+       Desde fuera, eso se ve igual que "no funciona". */
+    if (!EN_LOCAL && process.env.SITIO) {
+        try {
+            const r = await fetch(process.env.SITIO, {
+                redirect: 'follow',
+                signal: AbortSignal.timeout(20000)
+            });
+            const html = r.ok ? await r.text() : '';
+            const esLaPlataforma = /Torneos FF/i.test(html);
+            marca(r.ok && esLaPlataforma, `Tu dominio sirve la plataforma (${process.env.SITIO})`,
+                !r.ok ? `contestó ${r.status}`
+                    : esLaPlataforma ? 'y es la plataforma, no otra cosa'
+                    : 'responde, pero lo que sirve no es Torneos FF');
+        } catch (e) {
+            marca(false, `Tu dominio sirve la plataforma (${process.env.SITIO})`,
+                `${e.message} — ¿pusiste el dominio en Settings → Pages?`);
+        }
+    }
+
+    /* 8. Entrar con una cuenta que no existe tiene que dar un "no", no un
        error del servidor. Si aquí sale 500, lo que está roto es la base o el
        servidor, no la contraseña de nadie. (429 también vale: significa que
        el freno a los intentos está funcionando.) */
@@ -116,7 +138,7 @@ async function pedir(ruta, op = {}) {
             : nadie.estado === 429 ? 'devuelve 429 (freno de intentos)'
             : `devolvió ${nadie.estado}: EL SERVIDOR ESTÁ FALLANDO`);
 
-    /* 8. Los torneos se leen sin necesidad de entrar */
+    /* 9. Los torneos se leen sin necesidad de entrar */
     const lista = await pedir('/torneos');
     marca(lista.estado === 200 && Array.isArray(lista.datos),
         'La lista de torneos es pública', `${(lista.datos || []).length} torneo(s)`);
