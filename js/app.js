@@ -85,6 +85,11 @@
     }
     /* Wompi tiene dos ambientes de prueba: pruebas (pub_test_) y sandbox
        (pub_stagtest_). En ninguno de los dos se mueve dinero real. */
+    /* Wompi identifica al comercio con su propio nombre, que no tiene por qué
+       ser el de la plataforma. Un cobro a nombre de un desconocido es la
+       forma más rápida de que alguien lo reporte al banco como fraude. */
+    const nombreEnWompi = () => String((window.CONFIG_TORNEOS || {}).nombreEnWompi || '').trim();
+
     const enPruebas = (p) => /^pub_(test|stagtest)_/.test(String((p && p.llavePublica) || ''));
 
     function avisoDePagos(p) {
@@ -1331,6 +1336,11 @@
                 ${conPasarela ? `
                 <div class="hint mb">El método de pago lo eliges en Wompi: tarjeta, Nequi, PSE o
                     Bancolombia. Cuando el banco confirme, el saldo te aparece solo.</div>
+                ${nombreEnWompi() ? `<div class="msg msg-info" style="font-size:.78rem">
+                    El cobro te va a aparecer a nombre de <b>${esc(nombreEnWompi())}</b>, que es la
+                    empresa que nos procesa los pagos. Es el cobro de Torneos FF: no te asustes
+                    cuando lo veas en tu banco.
+                </div><div class="mb"></div>` : ''}
                 ` : `
                 <div class="field">
                     <label>Método</label>
