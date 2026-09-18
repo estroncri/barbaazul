@@ -103,11 +103,11 @@ El número del organizador va en el secreto `ADMIN_WHATSAPP` (con indicativo,
 sin espacios: `573192559674`). Es el número al que le llegan las solicitudes
 de verificación y de recuperación de contraseña. Ya está puesto.
 
-Lo otro es el WhatsApp de cara a los jugadores: el perfil de empresa, la
-comunidad, los grupos y lo que va escrito en cada uno. Está todo listo para
-copiar en [`WHATSAPP.md`](WHATSAPP.md). Cuando la comunidad exista, su enlace
-de invitación va en `whatsappGrupo` dentro de `js/config.js`; mientras esté
-vacío, el botón no sale en la página.
+Lo otro es el WhatsApp de cara a los jugadores: el perfil de empresa, los
+dos grupos —avisos y reclamos— y lo que va escrito en cada uno. Está todo
+listo para copiar en [`WHATSAPP.md`](WHATSAPP.md). Cuando el grupo de avisos
+exista, su enlace de invitación va en `whatsappGrupo` dentro de
+`js/config.js`; mientras esté vacío, el botón no sale en la página.
 
 ---
 
