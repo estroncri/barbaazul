@@ -17,7 +17,7 @@ y cuando se filtre una sala, no hay manera de saber quién fue.
 
 ## 0. Antes de instalar nada
 
-El número es **+57 319 255 9674**, el mismo que ya está puesto en la
+El número es **+57 301 690 9344**, el mismo que ya está puesto en la
 plataforma como soporte (`js/config.js`).
 
 - **Un número vive en una sola de las dos apps.** Si ese número ya tiene
@@ -357,7 +357,7 @@ verificación ni que le pagues a un número personal. Si alguien te escribe
 por privado pidiendo eso, es una estafa.
 
 Reclamos: en el grupo de reclamos.
-Soporte: +57 319 255 9674
+Soporte: +57 301 690 9344
 ```
 
 ---
@@ -460,17 +460,27 @@ El del domingo sigue abierto.
 
 ---
 
-## 9. El enlace en la página
+## 9. Los enlaces en la página
 
-Cuando el grupo de **Avisos** esté creado, saca su enlace de invitación y
-mándamelo. Va en `js/config.js`:
+Ya están puestos en `js/config.js`:
 
 ```js
-whatsappGrupo: 'https://chat.whatsapp.com/XXXXXXXXXX'
+whatsappSoporte:  '573016909344',
+whatsappGrupo:    'https://chat.whatsapp.com/FtPydO5sRcPIwxf7refPu0',   // Avisos
+whatsappReclamos: 'https://chat.whatsapp.com/CopWd6ErM9J3ZOzYTavr1O'    // Reclamos
 ```
 
-Mientras esté vacío, el botón no aparece en la página — a propósito: un
-botón que lleva a un grupo que no existe es peor que no tener botón.
+- **Avisos** sale como botón *Entrar al grupo* en la portada.
+- **Reclamos** sale en la Billetera, debajo de *Escribir a soporte*.
+- **Soporte** es el número al que llevan los botones de escribir.
+
+Si un día cambias un grupo, se cambia aquí y ya: cualquiera vacío hace que
+su botón desaparezca, que es mejor que un botón que lleva a un grupo muerto.
+
+⚠️ El número del organizador también vive como secreto en GitHub
+(`ADMIN_WHATSAPP`), que es el que usa el servidor para las verificaciones y
+las recuperaciones de contraseña. Ese hay que cambiarlo aparte, en
+Settings → Secrets, y relanzar el despliegue.
 
 ---
 

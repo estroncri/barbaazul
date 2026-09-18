@@ -100,7 +100,7 @@ Guardar, y lanzar el despliegue.
 ## 4. Tu WhatsApp
 
 El número del organizador va en el secreto `ADMIN_WHATSAPP` (con indicativo,
-sin espacios: `573192559674`). Es el número al que le llegan las solicitudes
+sin espacios: `573016909344`). Es el número al que le llegan las solicitudes
 de verificación y de recuperación de contraseña. Ya está puesto.
 
 Lo otro es el WhatsApp de cara a los jugadores: el perfil de empresa, los

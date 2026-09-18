@@ -17,9 +17,13 @@
    whatsappSoporte: el número al que le escribe un jugador si tiene un
                problema con un pago. Con indicativo y sin signos: 573001112233
 
-   whatsappGrupo: el enlace de invitación al grupo donde avisas los torneos.
-               Vacío = no se muestra el botón, que es mejor que un botón que
-               lleva a un grupo que no existe.
+   whatsappGrupo: el enlace de invitación al grupo de avisos, donde salen los
+               torneos. Vacío = no se muestra el botón, que es mejor que un
+               botón que lleva a un grupo que no existe.
+
+   whatsappReclamos: el enlace al grupo donde se reclama si algo salió mal.
+               Va aparte del de soporte a propósito: un reclamo de plata
+               resuelto en privado no le consta al siguiente que pregunte.
 
    nombreEnWompi: el nombre con el que Wompi identifica al comercio. Si no
                es el mismo de la plataforma, el jugador se va a encontrar un
@@ -33,7 +37,8 @@
 // dirección desde fuera (una prueba, otro despliegue) sin editar este archivo.
 window.CONFIG_TORNEOS = Object.assign({
     api: 'https://torneos-ff.estroncri.workers.dev/api',
-    whatsappSoporte: '573192559674',
-    whatsappGrupo: '',
+    whatsappSoporte: '573016909344',
+    whatsappGrupo: 'https://chat.whatsapp.com/FtPydO5sRcPIwxf7refPu0',
+    whatsappReclamos: 'https://chat.whatsapp.com/CopWd6ErM9J3ZOzYTavr1O',
     nombreEnWompi: 'obsidiancol'
 }, window.CONFIG_TORNEOS || {});

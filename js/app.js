@@ -1378,6 +1378,15 @@
                            href="${esc(waLink('Hola, tengo una duda con un pago en Torneos FF. Mi ID de Free Fire es ' + yo.ffUid, cfg.whatsappSoporte))}">
                            <i class="bi bi-whatsapp"></i> Escribir a soporte
                         </a>
+                        ${cfg.whatsappReclamos ? `
+                        <a class="btn btn-ghost btn-block mt" target="_blank" rel="noopener"
+                           href="${esc(cfg.whatsappReclamos)}">
+                           <i class="bi bi-chat-left-text"></i> Grupo de reclamos
+                        </a>
+                        <p class="muted mt" style="font-size:.78rem">
+                            Un premio que no cuadra o un cobro doble van mejor en el grupo: ahí queda
+                            la constancia de que se resolvió.
+                        </p>` : ''}
                     </div>
                 </div>
             </div>

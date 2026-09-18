@@ -226,6 +226,7 @@ window.Store = (function () {
                 regionPorDefecto: 'us',
                 // Estos dos se ponen en config.js, que es donde se buscan.
                 whatsappGrupo: (window.CONFIG_TORNEOS || {}).whatsappGrupo || '',
+                whatsappReclamos: (window.CONFIG_TORNEOS || {}).whatsappReclamos || '',
                 whatsappSoporte: (window.CONFIG_TORNEOS || {}).whatsappSoporte || '573001112233',
                 metodosPago: ['Nequi', 'Daviplata', 'Bancolombia', 'Efecty'],
                 comision: 10, // % que se queda la plataforma sobre lo recaudado
