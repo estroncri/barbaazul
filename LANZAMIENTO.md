@@ -99,10 +99,15 @@ Guardar, y lanzar el despliegue.
 
 ## 4. Tu WhatsApp
 
-Sigue puesto el número de relleno `573000000000`. Guarda el tuyo como el
-secreto `ADMIN_WHATSAPP` (con indicativo, sin espacios: `573108376388`) y
-relanza el despliegue. Es el número al que le llegan las solicitudes de
-verificación y de recuperación de contraseña.
+El número del organizador va en el secreto `ADMIN_WHATSAPP` (con indicativo,
+sin espacios: `573192559674`). Es el número al que le llegan las solicitudes
+de verificación y de recuperación de contraseña. Ya está puesto.
+
+Lo otro es el WhatsApp de cara a los jugadores: el perfil de empresa, la
+comunidad, los grupos y lo que va escrito en cada uno. Está todo listo para
+copiar en [`WHATSAPP.md`](WHATSAPP.md). Cuando la comunidad exista, su enlace
+de invitación va en `whatsappGrupo` dentro de `js/config.js`; mientras esté
+vacío, el botón no sale en la página.
 
 ---
 
