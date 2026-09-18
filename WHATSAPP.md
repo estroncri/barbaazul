@@ -362,7 +362,36 @@ Soporte: +57 319 255 9674
 
 ---
 
-## 8. Las plantillas de los avisos
+## 8. Los avisos los escribe el panel
+
+No hay que copiar nada de aquí a mano. Al crear un torneo, el panel abre solo
+el aviso ya escrito con **los datos de ese torneo**: la hora, el mapa, el cupo
+en su unidad (48 dúos, no 48 jugadores) y el premio que de verdad se paga.
+
+Se copia con un botón, o se abre WhatsApp directamente con el mensaje puesto.
+
+Los seis, en la misma ventana:
+
+| Mensaje | Cuándo |
+|---|---|
+| Torneo abierto | Apenas lo creas |
+| Faltan para jugar | Si no llega al mínimo |
+| Últimos cupos | Cuando queden pocos |
+| Recordatorio | Media hora antes |
+| Resultados | Al publicar la tabla |
+| Cancelado | Si se cancela |
+
+El panel abre de entrada el que toca según cómo esté el torneo: si le faltan
+tres dúos para el mínimo, abre el de "faltan", no el anuncio.
+
+Para volver a sacarlos después: **Panel → Torneos → Mensajes** en la tarjeta
+del torneo, o la pestaña **WhatsApp**.
+
+Ninguno de los seis lleva el ID ni la contraseña de la sala. El recordatorio
+dice a qué hora aparecen en la página, que es distinto.
+
+Así es como salen:
+
 
 **Torneo abierto**
 

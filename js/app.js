@@ -757,6 +757,73 @@
         return Array.from(equipos.values());
     }
 
+    /* El podio que va en el mensaje de resultados: sale de la tabla ya
+       guardada, no de lo que el organizador recuerde. */
+    function podioDe(t) {
+        return porEquipos(t.participantes || [])
+            .filter((p) => p.resultado)
+            .sort((a, b) => (a.resultado.puesto || 99) - (b.resultado.puesto || 99))
+            .slice(0, 3)
+            .map((p) => ({
+                nombre: p.equipo.nombre,
+                kills: p.resultado.kills || 0,
+                premio: p.resultado.premio || 0
+            }));
+    }
+
+    /* Los mensajes del grupo, ya escritos con los datos de este torneo.
+       Copiar la hora y el cupo a mano de la pantalla al chat es donde se
+       cuela el error, y un aviso con la hora equivocada son cuarenta
+       personas esperando en la sala que no es.
+
+       El mismo selector se usa en dos sitios —el que sale solo al crear el
+       torneo y la pestaña de WhatsApp—, así que va por clases y no por id:
+       los dos pueden estar en pantalla a la vez. */
+    const CAJA_MENSAJES = `
+        <div class="tabs msg-tabs"></div>
+        <div class="muted mb msg-cuando" style="font-size:.78rem"></div>
+        <div class="wa-previa msg-texto"></div>
+        <div class="flex mt">
+            <button class="btn btn-fire btn-sm msg-copiar"><i class="bi bi-clipboard"></i> Copiar</button>
+            <a class="btn btn-wa btn-sm msg-abrir" target="_blank" rel="noopener">
+                <i class="bi bi-whatsapp"></i> Abrir WhatsApp</a>
+        </div>`;
+
+    function pintarMensajes(raiz, t, claveInicial) {
+        const M = window.MensajesTorneo;
+        if (!M) { toast('No se pudieron generar los mensajes', 'err'); return; }
+
+        const msgs = M.lista(t, { sitio: location.host || '', podio: podioDe(t), jugaron: t.jugadores || 0 });
+        let clave = claveInicial || M.sugerido(t);
+
+        $('.msg-tabs', raiz).innerHTML = msgs
+            .map((x) => `<button class="tab" data-msg="${esc(x.clave)}">${esc(x.titulo)}</button>`).join('');
+
+        const pintar = () => {
+            const x = msgs.find((z) => z.clave === clave) || msgs[0];
+            $$('[data-msg]', raiz).forEach((b) => b.classList.toggle('on', b.dataset.msg === x.clave));
+            $('.msg-cuando', raiz).textContent = 'Cuándo se manda: ' + x.cuando.toLowerCase();
+            /* textContent y no innerHTML: el texto lleva el nombre del torneo,
+               que lo escribió una persona, y de aquí sale tal cual al chat. */
+            $('.msg-texto', raiz).textContent = x.texto;
+            $('.msg-abrir', raiz).href = waLink(x.texto);
+        };
+        $$('[data-msg]', raiz).forEach((b) => { b.onclick = () => { clave = b.dataset.msg; pintar(); }; });
+        $('.msg-copiar', raiz).onclick = () => copiar($('.msg-texto', raiz).textContent, 'Mensaje copiado');
+        pintar();
+    }
+
+    function abrirMensajes(t, claveInicial) {
+        const m = modal('Mensajes para el grupo — ' + t.nombre, `
+            <p class="muted mb" style="font-size:.82rem">
+                Ya escritos con los datos de este torneo. Cópialos y pégalos en
+                <b>Torneos FF · Avisos</b>.
+            </p>
+            ${CAJA_MENSAJES}`);
+        pintarMensajes(m, t, claveInicial);
+        return m;
+    }
+
     /* Trae el nick de Free Fire a partir del ID mientras se escribe.
 
        Solo rellena si el dato viene del juego: cuando el servicio de perfiles
@@ -1738,6 +1805,7 @@
                         : `<b style="color:var(--amarillo)">Faltan ${t.minimo - t.inscritos} ${unidadDe(t.modo)}</b> para el mínimo de ${t.minimo}`) : ''}</div>
                 <div class="flex">
                     <a href="#/torneo/${t.id}" class="btn btn-ghost btn-sm"><i class="bi bi-eye"></i> Ver</a>
+                    <button class="btn btn-ghost btn-sm" data-mensajes="${t.id}"><i class="bi bi-whatsapp"></i> Mensajes</button>
                     <button class="btn btn-ghost btn-sm" data-editar="${t.id}"><i class="bi bi-pencil"></i> Editar</button>
                     <button class="btn btn-oro btn-sm" data-sala="${t.id}"><i class="bi bi-door-open-fill"></i> ${t.sala.publicada ? 'Editar sala' : 'Publicar sala'}</button>
                     <button class="btn btn-fire btn-sm" data-result="${t.id}"><i class="bi bi-list-ol"></i> Resultados</button>
@@ -1999,14 +2067,7 @@
                     <label>Torneo</label>
                     <select id="waTorneo">${abiertos.map((t) => `<option value="${t.id}">${esc(t.nombre)}</option>`).join('')}</select>
                 </div>
-                <div class="field">
-                    <label>Mensaje generado</label>
-                    <textarea id="waTexto" style="min-height:220px"></textarea>
-                </div>
-                <div class="flex">
-                    <button class="btn btn-wa" id="waEnviar"><i class="bi bi-whatsapp"></i> Abrir WhatsApp</button>
-                    <button class="btn btn-ghost" id="waCopiar"><i class="bi bi-clipboard"></i> Copiar</button>
-                </div>
+                <div id="waCaja">${CAJA_MENSAJES}</div>
             </div>
             <div>
                 <div class="card">
@@ -2069,12 +2130,20 @@
                     adminTab = 'torneos';
                     location.hash = '#/torneo/' + t.id;
                     render();
+                    /* El aviso sale solo, aquí y ahora. Si hay que ir a
+                       buscarlo, se anuncia el torneo mañana — o nunca. */
+                    abrirMensajes(t, 'anuncio');
                 } catch (e) {
                     $('#crearMsg').innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>`;
                     this.disabled = false;
                 }
             };
         }
+
+        /* --- Los mensajes para el grupo --- */
+        $$('[data-mensajes]').forEach((b) => {
+            b.onclick = async () => { abrirMensajes(await S.torneo(b.dataset.mensajes)); };
+        });
 
         /* --- Editar un torneo que ya existe --- */
         $$('[data-editar]').forEach((b) => {
@@ -2340,30 +2409,17 @@
             };
         });
 
-        /* --- WhatsApp --- */
+        /* --- WhatsApp ---
+           Antes se armaba aquí un solo mensaje, y anunciaba "Premio total" con
+           un reparto por porcentajes que ya no se paga: ahora cada uno cobra
+           sus kills. Un aviso que promete una bolsa que nadie va a repartir es
+           un reclamo garantizado, así que los mensajes salen de mensajes.js,
+           que es lo que se prueba. */
         const sel = $('#waTorneo');
         if (sel) {
-            const cfg = S.config();
-            const pintar = async () => {
-                const t = await S.torneo(sel.value);
-                const req = S.cupoPorModo[t.modo];
-                $('#waTexto').value =
-                    `🔥 *${t.nombre}* 🔥\n\n` +
-                    `🎮 Modo: ${S.nombreModo[t.modo]}\n` +
-                    `🗺️ Mapa: ${t.mapa}\n` +
-                    `🗓️ ${fecha(t.fecha)}\n` +
-                    `💵 Cupo: ${money(t.costo)} por jugador${req > 1 ? ` (${money(t.costo * req)} el equipo)` : ''}\n` +
-                    `🏆 Premio total: ${money(t.premioTotal)}\n` +
-                    t.distribucion.map((d) => `   ${d.pos}° lugar: ${money(Math.round(t.premioTotal * d.pct / 100))}`).join('\n') + '\n' +
-                    `👥 Cupos: ${t.inscritos}/${t.cupoMax}\n\n` +
-                    `✅ Inscríbete y paga tu cupo en la plataforma:\n${location.origin + location.pathname}#/torneo/${t.id}\n\n` +
-                    `La lista de participantes, el ID de la sala y los resultados salen ahí mismo.\n` +
-                    `Dudas: wa.me/${cfg.whatsappSoporte}`;
-            };
+            const pintar = async () => pintarMensajes($('#waCaja'), await S.torneo(sel.value));
             sel.onchange = pintar;
             await pintar();
-            $('#waEnviar').onclick = () => window.open(waLink($('#waTexto').value), '_blank', 'noopener');
-            $('#waCopiar').onclick = () => copiar($('#waTexto').value, 'Mensaje copiado');
             $('#encGuardar').onclick = async () => {
                 try {
                     await S.guardarEncuesta(sel.value, {

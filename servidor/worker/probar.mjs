@@ -499,5 +499,84 @@ comprobar(String(rehecha.pass_hash).startsWith('v2$'),
 const entraOtraVez = await llamar('POST', '/api/auth/login', { usuario: '2148563097', pass: 'clave-de-antes' });
 comprobar(entraOtraVez.estado === 200, 'Y sigue entrando con la misma contraseña de siempre');
 
+/* ============================================================
+   Los mensajes para el grupo
+   ------------------------------------------------------------
+   Los escribe la plataforma para que el organizador no copie a
+   mano la hora y el cupo al chat. Si salen mal, salen mal para
+   todo el grupo a la vez, y nadie los revisa antes de pegarlos.
+   ============================================================ */
+console.log('\n── Mensajes para el grupo ──\n');
+
+globalThis.window = globalThis;
+new Function(readFileSync(join(aqui, '..', '..', 'js', 'mensajes.js'), 'utf8'))();
+const MSG = globalThis.MensajesTorneo;
+
+/* 8:00 p. m. en Colombia = 01:00 UTC del día siguiente. */
+const torneoDuo = {
+    nombre: 'Copa Prueba', modo: 'duo', fecha: '2026-09-20T01:00:00.000Z',
+    cupoMax: 48, inscritos: 3, jugadores: 6, costo: 5000,
+    precioKill: 3000, premioGanador: 15000, minimo: 5, mapa: 'Bermuda', estado: 'abierto'
+};
+
+const anuncio = MSG.para(torneoDuo, 'anuncio');
+
+/* cupo_max cuenta equipos, no personas: un Dúo con cupo 48 son 48 dúos.
+   Anunciarlo como "48 jugadores" es prometer la mitad de los cupos. */
+comprobar(anuncio.includes('48 dúos'), 'El cupo de un Dúo se anuncia en dúos, no en jugadores');
+comprobar(!anuncio.includes('48 jugadores'), 'Y no se cuela la palabra jugadores en el cupo');
+
+/* La hora se fija a Bogotá: el organizador puede tener el portátil en otro
+   huso, pero el torneo sigue siendo a las 8 de la noche en Colombia. */
+comprobar(anuncio.includes('8:00 p. m.'), 'La hora sale en hora de Colombia', anuncio.match(/\d+:\d+ [ap]\. m\./)?.[0]);
+comprobar(anuncio.includes('19 de septiembre'), 'Y con la fecha de Colombia, no la del UTC');
+
+/* La hora en es-CO ya termina en punto: una frase que cierra con ella
+   acababa en "p. m..". */
+for (const m of MSG.lista(torneoDuo, { podio: [], jugaron: 0 })) {
+    comprobar(!m.texto.includes('..'), `Sin puntos dobles en "${m.titulo}"`);
+}
+
+/* La sala se publica en la página, donde solo la ve quien pagó. Que ningún
+   mensaje la lleve no es estética: en un grupo la ve cualquiera. */
+const conSala = Object.assign({}, torneoDuo, { sala: { id: '987654321', pass: 'clave1', publicada: true } });
+for (const m of MSG.lista(conSala, { podio: [], jugaron: 0 })) {
+    comprobar(!m.texto.includes('987654321') && !m.texto.includes('clave1'),
+        `"${m.titulo}" no lleva los datos de la sala`);
+}
+comprobar(MSG.para(conSala, 'recordatorio').includes('7:50 p. m.'),
+    'El recordatorio dice a qué hora se libera la sala, no cuál es');
+
+/* El mensaje que toca según el estado: el organizador con prisa no debería
+   tener que elegir. */
+comprobar(MSG.sugerido(torneoDuo) === 'faltan', 'Con 3 dúos de 5, lo que toca avisar es que faltan');
+comprobar(MSG.sugerido({ ...torneoDuo, inscritos: 46, minimo: 5 }) === 'ultimos', 'Casi lleno: últimos cupos');
+comprobar(MSG.sugerido({ ...torneoDuo, inscritos: 0 }) === 'anuncio', 'Recién creado: el anuncio');
+comprobar(MSG.sugerido({ ...torneoDuo, estado: 'cancelado' }) === 'cancelado', 'Cancelado: el de la devolución');
+comprobar(MSG.sugerido({ ...torneoDuo, estado: 'finalizado' }) === 'resultados', 'Finalizado: la tabla');
+
+const tabla = MSG.para({ ...torneoDuo, estado: 'finalizado' }, 'resultados',
+    { podio: [{ nombre: 'Uno + Dos', kills: 11, premio: 48000 }, { nombre: 'Tres + Cuatro', kills: 1, premio: 3000 }], jugaron: 44 });
+comprobar(tabla.includes('🥇 Uno + Dos — 11 kills — $48.000'), 'El podio sale con kills y premio');
+comprobar(tabla.includes('1 kill —'), 'Una sola kill se dice en singular');
+comprobar(tabla.includes('los 44 que jugaron'), 'Y dice cuántos jugaron');
+
+/* Cancelar es lo que más reclamos genera: el mensaje tiene que decir que la
+   plata ya volvió, no que va a volver. */
+const cancel = MSG.para({ ...torneoDuo, estado: 'cancelado' }, 'cancelado');
+comprobar(cancel.includes('devolvió el cupo completo'), 'El de cancelado dice que la plata ya volvió');
+comprobar(cancel.includes('mínimo de 5 dúos'), 'Y por qué no se jugó');
+
+/* En Solo no hay compañero que buscar ni pareja que gane. */
+const solo = MSG.para({ ...torneoDuo, modo: 'solo', premioGanador: 10000 }, 'anuncio');
+comprobar(!solo.includes('Inscríbete solo'), 'En Solo no se ofrece buscar compañero');
+comprobar(solo.includes('al ganador') && !solo.includes('a la pareja'), 'En Solo gana un jugador, no una pareja');
+comprobar(MSG.para({ ...torneoDuo, modo: 'escuadra', premioGanador: 9000 }, 'anuncio').includes('al equipo ganador'),
+    'En Escuadra gana un equipo');
+
+/* Un torneo sin mapa no debe dejar un renglón vacío en la mitad del aviso. */
+const sinMapa = MSG.para({ ...torneoDuo, mapa: '' }, 'anuncio');
+comprobar(!/\n\n\n/.test(sinMapa) && !sinMapa.includes('🗺️'), 'Sin mapa, el aviso no deja el hueco');
+
 console.log(fallos === 0 ? '\n  Todo correcto.\n' : `\n  ${fallos} prueba(s) fallaron.\n`);
 process.exit(fallos ? 1 : 0);
