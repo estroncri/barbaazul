@@ -1728,7 +1728,7 @@
                     `El premio cae al saldo del ganador cuando se publican los resultados.`,
                     `Retiro mínimo: ${money(cfg.minRetiro)}. Se paga por ${cfg.metodosPago.join(', ')}.`,
                     'Los retiros se pagan en menos de 24 horas hábiles a una cuenta a tu nombre.',
-                    `La plataforma retiene el ${cfg.comision}% de lo recaudado para operación y premios de cortesía.`
+                    'Lo que se recauda en cupos paga los premios por kill y el bono al ganador. Lo que sobre es del organizador, y entre más kills haya, menos sobra.'
                 ]],
                 ['Aviso importante', [
                     'Torneos FF no está afiliada, patrocinada ni avalada por Garena ni por Free Fire.',

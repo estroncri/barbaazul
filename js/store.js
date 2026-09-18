@@ -229,7 +229,10 @@ window.Store = (function () {
                 whatsappReclamos: (window.CONFIG_TORNEOS || {}).whatsappReclamos || '',
                 whatsappSoporte: (window.CONFIG_TORNEOS || {}).whatsappSoporte || '573001112233',
                 metodosPago: ['Nequi', 'Daviplata', 'Bancolombia', 'Efecty'],
-                comision: 10, // % que se queda la plataforma sobre lo recaudado
+                /* Aquí hubo un `comision: 10` que solo se enseñaba en la página
+                   de Reglas: el servidor nunca lo aplicó. Con el premio por
+                   kill no hay porcentaje fijo, así que decía un número que no
+                   era el que salía de la cuenta. */
                 minRetiro: 10000
             }
         };

@@ -101,7 +101,9 @@ Guardar, y lanzar el despliegue.
 
 El número del organizador va en el secreto `ADMIN_WHATSAPP` (con indicativo,
 sin espacios: `573016909344`). Es el número al que le llegan las solicitudes
-de verificación y de recuperación de contraseña. Ya está puesto.
+de verificación y de recuperación de contraseña, y vive en GitHub, no en el
+repositorio: cuando cambies de número hay que actualizarlo en
+Settings → Secrets y relanzar el despliegue.
 
 Lo otro es el WhatsApp de cara a los jugadores: el perfil de empresa, los
 dos grupos —avisos y reclamos— y lo que va escrito en cada uno. Está todo
