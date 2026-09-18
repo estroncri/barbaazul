@@ -1,229 +1,245 @@
 # Siete videos para el torneo
 
-Verticales, 9:16, para TikTok y Reels. Ninguno pasa de 30 segundos: el que
-dura más lo ve menos gente hasta el final, y el final es donde está el
-enlace.
+Verticales, 9:16, de unos 40 segundos cada uno. En 40 segundos caben unas 120
+palabras habladas, así que lo que está escrito abajo ya viene medido: si lo
+lees corrido te da el tiempo casi exacto.
 
-**Lo que decide si funciona son los primeros 2 segundos.** Nadie se queda a
-ver "hola, bienvenidos a mi canal". Por eso cada guion abre con el gancho ya
-puesto, sin saludo y sin presentación.
+No los leas. Apréndete la idea y dilo como lo dirías en un audio de WhatsApp.
+Un guion leído se nota en el primer segundo y la gente se va.
 
-Tres reglas para los siete:
+La gente decide si se queda en los dos primeros segundos. Por eso ninguno de
+estos empieza con "hola, bienvenidos a mi canal". Todos arrancan con la frase
+más dura que tenían.
 
-- **Gameplay tuyo de fondo, siempre.** Una kill limpia, un clutch, un
-  headshot. El audio va por encima; la partida es lo que retiene.
-- **El texto en pantalla no es el subtítulo.** Es el gancho, en grande, dos
-  líneas máximo, arriba y centrado, donde no lo tapa la interfaz.
-- **Un solo mensaje por video.** Si intentas explicar el precio, el premio,
-  el retiro y las reglas en el mismo, no se queda ninguno.
+Ponle gameplay tuyo de fondo siempre, aunque estés hablando a cámara. La
+partida es lo que los mantiene ahí mientras entienden de qué les hablas.
 
-Al final de todos, la misma tarjeta 2 segundos: **torneosff.online**.
+El texto en pantalla no es el subtítulo, es el gancho. Grande, arriba, dos
+líneas como máximo, donde no lo tape la interfaz de TikTok.
 
----
+Y un mensaje por video. Si en el mismo intentas explicar el precio, el
+premio, el retiro y las reglas, no se queda ninguno.
 
-## 1 · El de la prueba — "esto paga de verdad"
-
-Es el que más importa. Todo el mundo asume que no pagan.
-
-**Gancho (0–2 s)** — texto grande, tú hablando a cámara:
-
-> "Gané $28.000 jugando Free Fire anoche. Les muestro el retiro."
-
-**Cuerpo (2–20 s)** — grabación de pantalla, sin cortes:
-
-> "Seis kills en un torneo Solo. Tres mil por kill, más diez mil porque
-> quedé de primero.
->
-> Esto es mi billetera en la página. Le doy retirar... y esto es mi Nequi."
-
-*(Se ve el saldo, se ve el botón, se ve la plata entrando. Sin cortes en esa
-parte — un corte ahí parece un truco.)*
-
-**Cierre (20–25 s)**
-
-> "El cupo cuesta cinco mil. Si haces dos kills ya lo recuperaste."
-
-**Texto final:** `torneosff.online`
-
-> **Ojo:** este video solo lo puedes hacer cuando ya hayas hecho un retiro de
-> verdad. No lo actúes. Si alguien pregunta en comentarios y no puedes
-> mostrar la transferencia, perdiste el video y el grupo.
+Todos cierran igual: dos segundos con `torneosff.online` en pantalla.
 
 ---
 
-## 2 · El de la plata — "cuánto se gana"
+## 1. El del retiro
 
-**Gancho (0–2 s)** — sobre una kill tuya:
+Este es el que más importa, y va primero. Todo el mundo asume que no pagan.
 
-> "Cada uno de estos vale tres mil pesos."
+**0:00 a 0:06** (a cámara, mostrando el celular con la notificación del Nequi)
 
-**Cuerpo (2–18 s)** — mientras juegas, con el número subiendo en pantalla:
+> "Esto me llegó anoche. Veintiocho mil pesos, al Nequi, por jugar Free Fire.
+> Ya sé lo que están pensando. Miren."
 
-> "Torneo Solo. Cupo cinco mil.
->
-> Una kill: tres mil. Dos: seis mil — ya recuperaste.
-> Cinco kills: quince mil.
-> Y si quedas de primero, diez mil más encima.
->
-> No hay bolsa que se reparta entre todos. Cobras lo que tú hiciste."
+**0:06 a 0:18** (gameplay tuyo del torneo)
 
-**Cierre (18–24 s)**
+> "Fue un torneo Solo. Hice seis kills. Cada kill son tres mil pesos.
+> Seis por tres, dieciocho. Y quedé de primero, o sea diez mil más encima.
+> Veintiocho mil."
 
-> "El que mata, cobra. Así de simple."
+**0:18 a 0:33** (grabación de pantalla, sin un solo corte)
 
-**Texto final:** `torneosff.online`
+> "Esta es mi billetera en la página. Le doy retirar. Pongo mi número.
+> Confirmo... y esto es lo que les mostré al principio.
+> Sin cortes, para que nadie venga a decir que lo edité."
 
----
+**0:33 a 0:40**
 
-## 3 · El del que no tiene con quién jugar
+> "El cupo cuesta cinco mil. Con dos kills ya lo recuperaste. Ahí les dejo."
 
-Este es para la mitad de la gente que ve el anuncio de Dúo y se va.
-
-**Gancho (0–3 s)** — a cámara:
-
-> "¿Quieres jugar el torneo de Dúo pero no tienes con quién? Ese era yo."
-
-**Cuerpo (3–18 s)** — grabación de pantalla, mostrando la inscripción:
-
-> "Te metes solo. La página te busca compañero entre los otros que también
-> entraron solos.
->
-> ¿Y si no aparece nadie? Tú decides: juegas solo contra los dúos
-> completos... o te devuelven el cupo completo.
->
-> No te quedas sin torneo y no te quedas sin plata."
-
-**Cierre (18–24 s)**
-
-> "Nadie se queda por fuera por no tener dúo."
-
-**Texto final:** `torneosff.online`
+Grábalo solo cuando ya hayas hecho un retiro de verdad. No lo actúes. El
+primer comentario va a ser "muestra el comprobante", y si no lo puedes
+mostrar perdiste el video y el grupo. Y la parte del retiro va sin cortes:
+un corte justo ahí parece truco aunque no lo sea.
 
 ---
 
-## 4 · El de la desconfianza — "¿y si no pagan?"
+## 2. El de cuánto se gana
 
-Ponle nombre al miedo antes de que lo escriban en comentarios.
+**0:00 a 0:05** (encima de una kill tuya, limpia)
 
-**Gancho (0–3 s)** — a cámara, directo:
+> "Esa kill que acabas de ver vale tres mil pesos. En serio, tres mil."
 
-> "'Eso es estafa.' Bueno. Te muestro por qué no."
+**0:05 a 0:16** (sigues jugando, el número sube en pantalla)
 
-**Cuerpo (3–22 s)** — pantalla, recorriendo la página:
+> "Funciona así. Pagas cinco mil el cupo. Cada persona que tumbes son tres
+> mil pesos. Con dos ya empataste. Con cinco llevas quince mil."
 
-> "Uno: no me pagas a mí por WhatsApp. Pagas dentro de la página, con Nequi,
-> tarjeta o PSE. Queda el comprobante.
->
-> Dos: la lista de inscritos es pública. Ahí está quién pagó.
->
-> Tres: los resultados se publican con captura de la partida, y quedan en el
-> grupo. Ahí se ve quién cobró y cuánto.
->
-> Cuatro: si el torneo no se llena, se cancela y te devuelven el cupo
-> completo al instante. No 'te lo abono para el próximo'."
+**0:16 a 0:28**
 
-**Cierre (22–28 s)**
+> "Y si quedas de primero, diez mil más encima de lo que ya hiciste."
 
-> "Mira el grupo de resultados antes de pagar. Está abierto."
+**0:28 a 0:40**
 
-**Texto final:** `torneosff.online`
+> "Ojo con esto, que es lo que lo cambia todo. No hay una bolsa que se
+> reparte entre los tres primeros. Cada quien cobra lo suyo. Si hiciste ocho
+> kills y quedaste de quinto, cobras las ocho. El que mata, cobra."
 
 ---
 
-## 5 · El de cómo se entra — "en un minuto"
+## 3. El del que no tiene con quién jugar
 
-**Gancho (0–2 s)**
+Es para la mitad de la gente que ve un anuncio de dúo y se va sin escribir.
 
-> "De cero a inscrito en un minuto. Va."
+**0:00 a 0:06** (a cámara)
 
-**Cuerpo (2–22 s)** — grabación de pantalla, rápido, sin narrar cada clic:
+> "El problema de los torneos de dúo nunca fue jugar. Es conseguir con quién.
+> A mí me pasaba: veía el anuncio, no tenía dúo, y me quedaba por fuera."
 
-> "Metes tu ID de Free Fire. Te sale tu nick, confirmas que eres tú.
->
-> Recargas lo que vayas a jugar. Nequi, tarjeta, PSE.
->
-> Abres el torneo, le das inscribirme, se descuenta el cupo.
->
-> Y ya. Diez minutos antes te aparece el ID y la clave de la sala ahí mismo,
-> en la página."
+**0:06 a 0:20** (grabación de pantalla mientras te inscribes)
 
-**Cierre (22–28 s)**
+> "Ahora te metes solo. Le das inscribirme y ya. La página te busca compañero
+> entre los otros que también entraron solos, y te lo asigna."
 
-> "No hay que pedirle la sala a nadie. Sale sola."
+**0:20 a 0:34**
 
-**Texto final:** `torneosff.online`
+> "¿Y si no aparece nadie? Ahí decides tú. O juegas solo contra los dúos
+> completos, que se puede, o te devuelven el cupo completo.
+> Completo. No un vale para el próximo torneo, la plata."
 
----
+**0:34 a 0:40**
 
-## 6 · El de la sala — el que da seriedad
-
-Corto y de puro ambiente. Sirve para que no parezca un torneo de dos
-personas.
-
-**Gancho (0–2 s)** — la pantalla de carga con la sala llena:
-
-> "48 personas pagaron por estar en esta sala."
-
-**Cuerpo (2–15 s)** — el aterrizaje, el primer combate, sin narrar mucho:
-
-> "Sala privada. Todos pagaron su cupo. Nadie entra de gratis.
->
-> La clave salió en la página diez minutos antes, solo para los inscritos.
->
-> Y en veinte minutos, alguno de estos se va a llevar la plata de los demás."
-
-**Cierre (15–20 s)** — una kill tuya, y corte seco.
-
-**Texto final:** `torneosff.online`
+> "Así que ya no hay excusa. Métete solo."
 
 ---
 
-## 7 · El del próximo torneo — el que se repite cada semana
+## 4. El de la desconfianza
 
-Este es la plantilla. La vuelves a grabar cada torneo cambiando los datos.
+**0:00 a 0:07** (a cámara, con el comentario en pantalla)
 
-**Gancho (0–3 s)** — a cámara, con energía:
+> "'Eso es estafa.' Me lo escribieron ayer. Se lo voy a responder aquí,
+> con la página abierta, y ustedes deciden."
 
-> "Viernes, ocho de la noche. Bermuda. Y hay plata puesta."
+**0:07 a 0:17** (recorriendo la página)
 
-**Cuerpo (3–15 s)** — texto en pantalla sobre gameplay:
+> "Uno. Tú no me pagas a mí. Pagas dentro de la página, con Nequi, tarjeta o
+> PSE. Te queda el comprobante en tu banco, no en mi WhatsApp."
 
-> "Dúo. Cupo cinco mil por jugador.
-> Tres mil por kill. Quince mil a la pareja que gane.
->
-> ¿No tienes dúo? Te buscamos uno.
->
-> Quedan [X] cupos."
+**0:17 a 0:26**
 
-**Cierre (15–20 s)**
+> "Dos. La lista de inscritos es pública. Ahí está quién pagó, con nick y
+> todo. Cuéntalos si quieres."
 
-> "Se cierra a las siete y media. El que llegue tarde, se queda viendo."
+**0:26 a 0:35**
 
-**Texto final:** `torneosff.online`
+> "Tres. Los resultados se publican con captura de la partida y quedan en el
+> grupo. Puedes ver quién cobró y cuánto, de todos los torneos anteriores."
+
+**0:35 a 0:40**
+
+> "Entra al grupo de resultados antes de pagar. Está abierto para cualquiera."
+
+---
+
+## 5. El de cómo se entra
+
+**0:00 a 0:06** (a cámara)
+
+> "Lo que más me preguntan es cómo se entra. Lo hago mientras hablo.
+> Cronométrenme."
+
+**0:06 a 0:17** (grabación de pantalla, rápido)
+
+> "Meto mi ID de Free Fire. Me sale mi nick solo. Confirmo que soy yo."
+
+**0:17 a 0:27**
+
+> "Recargo lo que voy a jugar. Nequi, tarjeta, PSE, lo que tengas a mano."
+
+**0:27 a 0:35**
+
+> "Abro el torneo, inscribirme, se descuenta el cupo. Ya quedé adentro."
+
+**0:35 a 0:40**
+
+> "Y diez minutos antes de la hora, el ID y la clave de la sala me aparecen
+> ahí mismo. No hay que pedírselos a nadie."
+
+---
+
+## 6. El de la sala
+
+Corto, de puro ambiente. Sirve para que no parezca un torneo de dos personas.
+
+**0:00 a 0:07** (la pantalla de carga con la sala llena)
+
+> "Cuarenta y ocho personas pagaron por estar en esta sala.
+> Y no todas van a salir con plata."
+
+**0:07 a 0:18** (el aterrizaje)
+
+> "Sala privada. Todos pusieron sus cinco mil. Aquí no entra nadie de gratis,
+> ni un amigo mío."
+
+**0:18 a 0:28**
+
+> "La clave salió en la página diez minutos antes, y solo la vieron los que
+> pagaron. Por eso no se filtra."
+
+**0:28 a 0:38** (combate, una kill buena tuya)
+
+> "Y en veinte minutos alguno de estos se lleva la plata de los otros.
+> Mira este."
+
+**0:38 a 0:40**
+
+Corte seco en la kill. Sin cierre hablado.
+
+---
+
+## 7. El del próximo torneo
+
+Esta es la plantilla. La vuelves a grabar cada semana cambiando los datos.
+
+**0:00 a 0:06** (a cámara, con energía)
+
+> "Viernes, ocho de la noche, Bermuda. Y quedan seis cupos."
+
+**0:06 a 0:18** (texto en pantalla sobre gameplay)
+
+> "Dúo. Cinco mil por jugador. Tres mil por cada kill. Y quince mil para la
+> pareja que gane."
+
+**0:18 a 0:29**
+
+> "¿No tienes dúo? Te metes solo y te buscamos uno. Si no aparece,
+> te devolvemos el cupo."
+
+**0:29 a 0:37**
+
+> "Las inscripciones cierran a las siete y media. No a las ocho.
+> A las siete y media."
+
+**0:37 a 0:40**
+
+> "El que llegue tarde se queda viendo. Link en la bio."
 
 ---
 
 ## Cómo publicarlos
 
-**El orden importa.** No los sueltes todos el mismo día:
+No los sueltes todos el mismo día. Este orden tiene lógica: cada uno prepara
+el siguiente.
 
-| Cuándo | Cuál | Por qué |
+| Día | Cuál | Por qué ese |
 |---|---|---|
-| Día 1 | 1 (el retiro) | Es el que convence. Va primero |
-| Día 2 | 2 (cuánto se gana) | Ya te creyeron; ahora el número |
-| Día 3 | 3 (sin dúo) | Recupera a la mitad que se iba |
-| Día 4 | 5 (cómo se entra) | Al que ya quiere, quítale la fricción |
-| Día 5 | 4 (¿y si no pagan?) | Para cuando ya haya escépticos en comentarios |
-| Día 6 | 6 (la sala) | Prueba de que hay gente |
-| Día 7 | 7 (el próximo) | Y este se repite cada semana |
+| 1 | El del retiro | Es el que convence. Sin este, los otros no importan |
+| 2 | Cuánto se gana | Ya te creyeron. Ahora el número |
+| 3 | Sin dúo | Recupera a la mitad que se iba |
+| 4 | Cómo se entra | Al que ya quiere, quítale la fricción |
+| 5 | La desconfianza | Para cuando ya haya escépticos en comentarios |
+| 6 | La sala | Prueba de que hay gente de verdad |
+| 7 | El próximo torneo | Y este se repite cada semana |
 
-**Contesta todos los comentarios el primer día.** Un comentario sin
-responder que dice "eso es robo" lo lee todo el que llegue después. Uno
-respondido con el enlace al grupo de resultados hace lo contrario.
+Contesta todos los comentarios el primer día, sobre todo los malos. Un "eso
+es robo" sin responder lo lee todo el que llegue después y se va. El mismo
+comentario respondido con el enlace al grupo de resultados hace lo contrario.
 
-**En la biografía va el enlace**, no en el video. Las plataformas entierran
-los videos que mandan gente para afuera; el que quiera, lo busca.
+El enlace va en la biografía, no en el video. TikTok e Instagram entierran lo
+que manda gente para afuera. El que quiera entrar, lo busca.
 
-**Nunca prometas en un video algo que no esté en la página.** Si el video
-dice que se pagan diez mil al ganador, que la página diga diez mil. La
-primera vez que no coincida, el resto de los videos dejan de servir.
+Y nunca prometas en un video algo que no esté en la página. Si el video dice
+diez mil al ganador, que la página diga diez mil. La primera vez que no
+coincida, los otros seis dejan de servir.
