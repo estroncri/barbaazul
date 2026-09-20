@@ -56,6 +56,7 @@ function torneoPublico(t, cuenta, extras) {
         distribucion: JSON.parse(t.distribucion || '[]'), mapa: t.mapa,
         reglas: JSON.parse(t.reglas || '[]'), estado: t.estado, tema: t.tema,
         encuesta: t.encuesta ? JSON.parse(t.encuesta) : null,
+        evidencia: t.evidencia || '',
         inscritos: cuenta?.n || 0, jugadores: cuenta?.j || 0,
         sala: { id: '', pass: '', publicada: !!t.sala_publicada }
     }, extras || {});
@@ -135,22 +136,26 @@ const ruta = (metodo, patron, mano) => rutas.push({ metodo, patron, mano });
 
 /* ---------- Cuenta ---------- */
 ruta('POST', /^\/api\/auth\/registro$/, async (c) => {
-    const { ffUid, nick, nivel, region, email, whatsapp, pass, perfil } = c.cuerpo;
+    const { ffUid, nick, nivel, region, email, whatsapp, pass, perfil, terminos } = c.cuerpo;
     if (!/^\d{6,14}$/.test(String(ffUid || ''))) throw malaPeticion('El ID de Free Fire son solo números (entre 6 y 14 dígitos).');
     if (!nick || !String(nick).trim()) throw malaPeticion('Escribe tu nick del juego.');
     if (!pass || pass.length < 6) throw malaPeticion('La contraseña debe tener al menos 6 caracteres.');
     if (!/^\d{10,13}$/.test(String(whatsapp || '').replace(/\D/g, ''))) throw malaPeticion('Escribe un número de WhatsApp válido (con indicativo).');
+    /* Aquí se cobra dinero a gente que puede tener catorce años. Sin esto
+       guardado no hay nada que enseñar el día que un acudiente pregunte. */
+    if (!terminos) throw malaPeticion('Hay que aceptar las reglas para poder registrarse.');
 
     const existe = await c.env.DB.prepare('SELECT 1 FROM usuarios WHERE ff_uid = ?').bind(String(ffUid)).first();
     if (existe) throw malaPeticion('Ese ID de Free Fire ya está registrado.');
 
     const { hash, sal } = await hashPass(pass, c.env);
     const id = uid('u');
-    await c.env.DB.prepare(`INSERT INTO usuarios (id, ff_uid, nick, nivel, region, email, whatsapp, pass_hash, pass_sal, rol, verificado, perfil, creado)
-                            VALUES (?,?,?,?,?,?,?,?,?,'jugador',0,?,?)`)
+    await c.env.DB.prepare(`INSERT INTO usuarios (id, ff_uid, nick, nivel, region, email, whatsapp, pass_hash, pass_sal, rol, verificado, perfil, terminos, terminos_fecha, creado)
+                            VALUES (?,?,?,?,?,?,?,?,?,'jugador',0,?,?,?,?)`)
         .bind(id, String(ffUid), String(nick).trim(), Number(nivel) || 0, region || 'us',
               email || '', String(whatsapp).replace(/\D/g, ''), hash, sal,
-              perfil ? JSON.stringify(perfil) : null, ahora()).run();
+              perfil ? JSON.stringify(perfil) : null,
+              String(terminos).slice(0, 40), ahora(), ahora()).run();
 
     const u = await c.env.DB.prepare('SELECT * FROM usuarios WHERE id = ?').bind(id).first();
     return { token: await crearSesion(c.env, id), usuario: await usuarioPublico(c.env, u) };
@@ -664,7 +669,13 @@ ruta('POST', /^\/api\/torneos\/([\w-]+)\/resultados$/, async (c, m) => {
             }
         }
     }
-    lote.push(c.env.DB.prepare("UPDATE torneos SET estado = 'finalizado' WHERE id = ?").bind(t.id));
+    /* El enlace de la captura del marcador. Se guarda con la tabla y no
+       después: si se deja para luego, no se hace. */
+    const evidencia = String(c.cuerpo.evidencia || '').trim().slice(0, 500);
+    if (evidencia && !/^https:\/\//i.test(evidencia)) throw malaPeticion('El enlace de la evidencia tiene que empezar por https://');
+
+    lote.push(c.env.DB.prepare("UPDATE torneos SET estado = 'finalizado', evidencia = ? WHERE id = ?")
+        .bind(evidencia || t.evidencia || null, t.id));
     await c.env.DB.batch(lote);
     return { ok: true };
 });

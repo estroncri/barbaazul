@@ -193,9 +193,9 @@
         cancelarTorneo: (id) => pedir('/torneos/' + encodeURIComponent(id) + '/cancelar', { metodo: 'POST' }),
         eliminarTorneo: (id) => pedir('/torneos/' + encodeURIComponent(id), { metodo: 'DELETE' }),
 
-        registrarResultados: async (torneoId, filas) => {
+        registrarResultados: async (torneoId, filas, evidencia) => {
             const r = await pedir('/torneos/' + encodeURIComponent(torneoId) + '/resultados',
-                { metodo: 'POST', cuerpo: { filas } });
+                { metodo: 'POST', cuerpo: { filas, evidencia: evidencia || '' } });
             await refrescarYo();
             return r;
         },

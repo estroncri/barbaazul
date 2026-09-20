@@ -85,13 +85,13 @@ const firmarEvento = async (tx, secreto = env.WOMPI_EVENTOS) => {
 console.log('\n── Worker de Cloudflare, sobre D1 ──\n');
 
 /* Organizador */
-const org = await llamar('POST', '/api/auth/registro', { ffUid: '1000000001', nick: 'ORG', whatsapp: '573000000000', pass: 'clave-larga' });
+const org = await llamar('POST', '/api/auth/registro', { ffUid: '1000000001', nick: 'ORG', whatsapp: '573000000000', pass: 'clave-larga', terminos: '2026-09-18' });
 db.prepare("UPDATE usuarios SET rol='admin' WHERE ff_uid='1000000001'").run();
 const tokOrg = org.datos.token;
 comprobar(!!tokOrg, 'El organizador se registra y recibe sesión');
 
 /* Un jugador normal no puede crear torneos */
-const jug = await llamar('POST', '/api/auth/registro', { ffUid: '2148563097', nick: 'Jugador', whatsapp: '573001112233', pass: 'clave123' });
+const jug = await llamar('POST', '/api/auth/registro', { ffUid: '2148563097', nick: 'Jugador', whatsapp: '573001112233', pass: 'clave123', terminos: '2026-09-18' });
 const tokJ = jug.datos.token;
 const pirata = await llamar('POST', '/api/torneos', { nombre: 'Pirata', modo: 'solo', fecha: '2030-01-01T00:00:00Z' }, tokJ);
 comprobar(pirata.estado === 403, 'Un jugador no puede crear torneos', 'HTTP ' + pirata.estado);
@@ -133,7 +133,7 @@ const dosVeces = await llamar('POST', `/api/torneos/${t.id}/inscripciones`, { eq
 comprobar(dosVeces.estado === 400 && (await saldo(tokJ)) === 15000, 'No se puede inscribir dos veces', dosVeces.datos.error);
 
 /* Sin saldo no entra */
-const pobre = await llamar('POST', '/api/auth/registro', { ffUid: '3312778455', nick: 'Pobre', whatsapp: '573004445566', pass: 'clave123' });
+const pobre = await llamar('POST', '/api/auth/registro', { ffUid: '3312778455', nick: 'Pobre', whatsapp: '573004445566', pass: 'clave123', terminos: '2026-09-18' });
 const sinPlata = await llamar('POST', `/api/torneos/${t.id}/inscripciones`, { equipo: { nombre: 'Pobre', miembros: [{ nick: 'Pobre', uid: '3312778455' }] } }, pobre.datos.token);
 comprobar(sinPlata.estado === 400 && /aldo/.test(sinPlata.datos.error), 'Sin saldo no se puede inscribir', sinPlata.datos.error);
 
@@ -362,7 +362,7 @@ comprobar(duo.costo === 5000, 'El dúo cuesta 5.000 por jugador', duo.costo);
 
 const conSaldo = async (ffUid, nick) => {
     const u = (await llamar('POST', '/api/auth/registro',
-        { ffUid, nick, whatsapp: '573000000000', pass: 'clave123' })).datos;
+        { ffUid, nick, whatsapp: '573000000000', pass: 'clave123', terminos: '2026-09-18' })).datos;
     const r = (await llamar('POST', '/api/recargas', { monto: 20000 }, u.token)).datos;
     await llamar('POST', '/api/wompi/eventos',
         await firmarEvento({ id: 'p' + ffUid, status: 'APPROVED', amount_in_cents: 2000000, reference: r.movimiento.ref }));
@@ -577,6 +577,46 @@ comprobar(MSG.para({ ...torneoDuo, modo: 'escuadra', premioGanador: 9000 }, 'anu
 /* Un torneo sin mapa no debe dejar un renglón vacío en la mitad del aviso. */
 const sinMapa = MSG.para({ ...torneoDuo, mapa: '' }, 'anuncio');
 comprobar(!/\n\n\n/.test(sinMapa) && !sinMapa.includes('🗺️'), 'Sin mapa, el aviso no deja el hueco');
+
+/* ============================================================
+   Lo que hay que poder enseñar cuando alguien reclame
+   ------------------------------------------------------------
+   Dos cosas que no son funciones sino constancia: qué aceptó
+   el jugador al registrarse, y con qué se decidió su premio.
+   Sin ellas, un reclamo se resuelve con la palabra de uno
+   contra la del otro, y el que cobra es el que grita más.
+   ============================================================ */
+console.log('\n── Constancia ──\n');
+
+const sinAceptar = await llamar('POST', '/api/auth/registro',
+    { ffUid: '9000000001', nick: 'SinLeer', whatsapp: '573001110000', pass: 'clave123' });
+comprobar(sinAceptar.estado === 400, 'No se puede crear cuenta sin aceptar las reglas', sinAceptar.estado);
+
+const aceptando = await llamar('POST', '/api/auth/registro',
+    { ffUid: '9000000002', nick: 'Leyo', whatsapp: '573001110001', pass: 'clave123', terminos: '2026-09-18' });
+comprobar(aceptando.estado === 200, 'Aceptándolas sí');
+
+const aceptacion = db.prepare("SELECT terminos, terminos_fecha FROM usuarios WHERE ff_uid = '9000000002'").get();
+comprobar(aceptacion.terminos === '2026-09-18', 'Queda guardada la versión que aceptó', aceptacion.terminos);
+comprobar(!!aceptacion.terminos_fecha, 'Y el día en que la aceptó', aceptacion.terminos_fecha);
+
+/* La evidencia del marcador. Va con la tabla y no en un mensaje aparte:
+   una captura que se manda por WhatsApp se pierde en la conversación. */
+const tPrueba = (await llamar('POST', '/api/torneos', {
+    nombre: 'Con evidencia', modo: 'solo', fecha: '2026-12-01T20:00:00.000Z', cupoMax: 10
+}, tokOrg)).datos;
+
+const conLink = await llamar('POST', `/api/torneos/${tPrueba.id}/resultados`,
+    { filas: [], evidencia: 'https://drive.google.com/captura' }, tokOrg);
+comprobar(conLink.estado === 200, 'Se puede guardar el enlace de la captura');
+comprobar((await llamar('GET', `/api/torneos/${tPrueba.id}`)).datos.evidencia === 'https://drive.google.com/captura',
+    'Y queda publicado con el torneo');
+
+const feo = await llamar('POST', `/api/torneos/${tPrueba.id}/resultados`,
+    { filas: [], evidencia: 'javascript:alert(1)' }, tokOrg);
+comprobar(feo.estado === 400, 'Un enlace que no es https se rechaza', feo.estado);
+comprobar((await llamar('GET', `/api/torneos/${tPrueba.id}`)).datos.evidencia === 'https://drive.google.com/captura',
+    'Y el que ya estaba no se pierde por intentarlo');
 
 console.log(fallos === 0 ? '\n  Todo correcto.\n' : `\n  ${fallos} prueba(s) fallaron.\n`);
 process.exit(fallos ? 1 : 0);

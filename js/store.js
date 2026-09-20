@@ -563,11 +563,12 @@ window.Store = (function () {
         },
 
         /* ---------- Resultados y premios ---------- */
-        registrarResultados: async (torneoId, filas) => {
+        registrarResultados: async (torneoId, filas, evidencia) => {
             await wait(DELAY);
             if (!api.esAdmin()) throw new Error('Acción solo para administradores.');
             const t = db.torneos.find((x) => x.id === torneoId);
             if (!t) throw new Error('Torneo no encontrado.');
+            if (evidencia) t.evidencia = String(evidencia);
 
             filas.forEach((f) => {
                 const insc = db.inscripciones.find((i) => i.id === f.inscripcionId);

@@ -59,6 +59,7 @@ await jugador.fill('#regWa', '573001112233');
 await jugador.fill('#regEmail', `${miUid}@example.com`);
 await jugador.fill('#regPass', 'clave-larga-123');
 await jugador.fill('#regPass2', 'clave-larga-123');
+await jugador.check('#regAcepto');
 await jugador.click('#btnCrear');
 await jugador.waitForSelector('#btnRecargar', { timeout: 20000 });
 marca(true, 'La cuenta queda creada y entra a su billetera');

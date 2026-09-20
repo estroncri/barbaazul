@@ -385,6 +385,11 @@
 
     /* Lo que se propone al crear cada tipo de torneo. El organizador lo
        puede cambiar torneo por torneo; esto es solo el punto de partida. */
+    /* La fecha de la última vez que cambiaron las Reglas. Se guarda junto con
+       la aceptación del jugador: "aceptó" sin saber qué aceptó no sirve el día
+       que haya que enseñarlo. Si cambias las Reglas, cambia esto. */
+    const VERSION_REGLAS = '2026-09-18';
+
     const REGLAS_MODO = {
         solo:     { costo: 5000, minimo: 20, precioKill: 3000, premioGanador: 10000, unidad: 'jugadores' },
         duo:      { costo: 5000, minimo: 5,  precioKill: 3000, premioGanador: 15000, unidad: 'dúos' },
@@ -565,6 +570,14 @@
                         </div>
                         ${participantes.length ? `<div class="p-list">${participantes.map((p, i) => filaParticipante(p, i, t, yo)).join('')}</div>`
                             : `<div class="empty"><i class="bi bi-people"></i>Todavía nadie se ha inscrito. ¡Sé el primero!</div>`}
+                        ${finalizado && t.evidencia ? `
+                        <a class="btn btn-ghost btn-block mt" href="${esc(t.evidencia)}" target="_blank" rel="noopener">
+                            <i class="bi bi-image"></i> Ver la captura del marcador
+                        </a>
+                        <p class="muted mt" style="font-size:.78rem">
+                            La pantalla final de la partida, tal como salió. Si tu fila no cuadra con esto,
+                            recláma­lo hoy mismo.
+                        </p>` : ''}
                     </div>
                 </div>
 
@@ -1277,8 +1290,12 @@
                     <input type="password" id="regPass2" placeholder="••••••">
                 </div>
             </div>
-            <button class="btn btn-fire btn-block" id="btnCrear">Crear mi cuenta</button>
-            <div class="hint mt">Al crear la cuenta aceptas las <a href="#/reglas" style="color:var(--oro)">reglas de la plataforma</a>.</div>
+            <label class="acepto">
+                <input type="checkbox" id="regAcepto">
+                <span>He leído las <a href="#/reglas" target="_blank" style="color:var(--oro)">reglas</a> y las acepto.
+                Soy mayor de 18 años, o tengo el permiso de mi acudiente para jugar con dinero.</span>
+            </label>
+            <button class="btn btn-fire btn-block mt" id="btnCrear">Crear mi cuenta</button>
         `;
         $('#btnCrear').onclick = async function () {
             const pass = $('#regPass').value, pass2 = $('#regPass2').value;
@@ -1288,6 +1305,7 @@
             };
             const msg = msgErr;
             if (pass !== pass2) return msg('Las contraseñas no coinciden.');
+            if (!$('#regAcepto').checked) return msg('Tienes que aceptar las reglas para crear la cuenta.');
             this.disabled = true; this.textContent = 'Creando...';
             try {
                 const nickManual = $('#regNickManual');
@@ -1298,7 +1316,8 @@
                     nivel: p.fuente === 'api' ? p.nivel : 0,
                     region: p.region,
                     perfil: p.fuente === 'api' ? p : null,
-                    email: $('#regEmail').value.trim(), whatsapp: leerWhatsapp('regWa'), pass
+                    email: $('#regEmail').value.trim(), whatsapp: leerWhatsapp('regWa'), pass,
+                    terminos: VERSION_REGLAS
                 });
                 toast('Cuenta creada. ¡Bienvenido, ' + u.nick + '!', 'ok');
                 location.hash = '#/billetera';
@@ -2297,6 +2316,12 @@
                             ? ` más <b>${money(t.premioGanador)}</b> para el puesto 1` : ''}.
                     </div>
                     <div class="msg msg-warn">Al guardar, los premios se abonan al saldo de cada ganador y el torneo queda finalizado.</div>
+                    <div class="field">
+                        <label>Enlace a la captura del marcador</label>
+                        <input type="url" id="resEvidencia" placeholder="https://..." value="${esc(t.evidencia || '')}">
+                        <div class="hint">Sube la captura de la pantalla final de Free Fire a Drive o al grupo y pega
+                        aquí el enlace. Es lo único con lo que se resuelve un reclamo de "yo hice más kills".</div>
+                    </div>
                     <div id="resMsg"></div>
                     <div class="tabla-wrap"><table>
                         <thead><tr><th>Equipo</th><th>Puesto</th><th>Kills</th><th>Puntos</th><th>Premio</th></tr></thead>
@@ -2332,7 +2357,7 @@
                         puntos: $(`[data-r-puntos="${p.id}"]`, m).value
                     }));
                     try {
-                        await S.registrarResultados(t.id, filas);
+                        await S.registrarResultados(t.id, filas, $('#resEvidencia', m).value.trim());
                         cerrarModal(); toast('Resultados publicados y premios pagados', 'ok'); render();
                     } catch (e) {
                         $('#resMsg', m).innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>`;

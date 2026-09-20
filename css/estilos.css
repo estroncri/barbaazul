@@ -679,6 +679,14 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
 .mt { margin-top: 14px; } .mb { margin-bottom: 14px; }
 .nowrap { white-space: nowrap; }
 
+/* La casilla de aceptar las reglas. Va con el texto al lado y no debajo:
+   una casilla suelta se marca sin leer. */
+.acepto {
+    display: flex; gap: 10px; align-items: flex-start; margin: 18px 0 4px;
+    font-size: .84rem; line-height: 1.5; color: var(--txt-2); cursor: pointer;
+}
+.acepto input { width: 18px; height: 18px; margin-top: 2px; flex: none; accent-color: var(--fire-2); }
+
 /* Aviso de demo */
 .demo-strip {
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 80;

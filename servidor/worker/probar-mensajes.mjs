@@ -45,7 +45,7 @@ await p.waitForTimeout(1000);
 await p.evaluate(async ([api, u]) => {
     await fetch(api + '/auth/registro', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ffUid: u, nick: 'ORG', whatsapp: '573192559674', pass: 'clave-larga-123' })
+        body: JSON.stringify({ ffUid: u, nick: 'ORG', whatsapp: '573016909344', pass: 'clave-larga-123', terminos: '2026-09-18' })
     });
 }, [API, uid]);
 
