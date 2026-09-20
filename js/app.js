@@ -1799,7 +1799,7 @@
         let cuerpo = '';
         if (adminTab === 'torneos') cuerpo = adminTorneos(torneos);
         if (adminTab === 'crear') cuerpo = adminCrear();
-        if (adminTab === 'retiros') cuerpo = adminRecargas(recargas) + adminRetiros(retiros);
+        if (adminTab === 'retiros') cuerpo = avisoComision() + adminRecargas(recargas) + adminRetiros(retiros);
         if (adminTab === 'cuentas') cuerpo = adminCuentas(verificaciones, recuperaciones);
         if (adminTab === 'whatsapp') cuerpo = adminWhatsapp(torneos);
 
@@ -1826,7 +1826,8 @@
                 </div>
                 <h3 style="margin:4px 0">${esc(t.nombre)}</h3>
                 <div class="muted mb">${fecha(t.fecha)} · ${t.inscritos}/${t.cupoMax} · Premio ${money(t.premioTotal)}</div>
-                <div class="muted mb">Recaudado hasta ahora: <b style="color:var(--verde)">${money(t.jugadores * t.costo)}</b>
+                <div class="muted mb">Cupos pagados: <b style="color:var(--verde)">${money(t.jugadores * t.costo)}</b>
+                    <span title="Esto es el saldo que los jugadores pusieron en este torneo. Lo que Wompi te gira es menos: su comisión se descuenta cuando el jugador recarga, no aquí."><i class="bi bi-info-circle"></i></span>
                     · Premios: ${esc(textoPremio(t))}<br>
                     ${t.minimo ? (t.inscritos >= t.minimo
                         ? `<b style="color:var(--verde)">Ya se juega</b> (mínimo ${t.minimo})`
@@ -1979,6 +1980,30 @@
             <div id="crearMsg"></div>
             ${camposTorneo(null)}
             <button class="btn btn-fire btn-block" id="btnCrearTorneo">Crear torneo</button>
+        </div>`;
+    }
+
+    /* Lo que la plataforma no puede saber: cuánto te gira Wompi de verdad.
+       El libro suma lo que entró al saldo del jugador, y eso es lo que le
+       debes a él. Wompi descuenta su comisión antes de girarte a ti, y la
+       descuenta POR RECARGA: el que recarga $50.000 de una paga esa comisión
+       una vez, el que recarga $5.000 cada torneo la paga cada vez. Por eso no
+       hay un número que poner aquí, solo el recordatorio de dónde mirarlo. */
+    function avisoComision() {
+        return `<div class="card mb">
+            <h3 class="mb">Lo que te gira Wompi no es lo que dice el libro</h3>
+            <p class="muted" style="font-size:.84rem;line-height:1.6">
+                Los saldos y los "cupos pagados" son lo que los jugadores pusieron: eso es lo que
+                les debes. Wompi te gira eso <b>menos su comisión</b>, que descuenta de cada recarga,
+                no de cada inscripción.
+                <br><br>
+                La comisión tiene una parte fija, así que pesa mucho en las recargas pequeñas y poco
+                en las grandes. El que recarga una sola vez para varios torneos te deja más que el
+                que recarga justo el cupo cada vez.
+                <br><br>
+                El número real está en tu panel de Wompi, en el detalle de cada transacción.
+                Compáralo con lo de aquí antes de fijar los premios del próximo torneo.
+            </p>
         </div>`;
     }
 
