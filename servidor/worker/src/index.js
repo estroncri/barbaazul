@@ -895,10 +895,21 @@ export function extraerDeHtml(html, uidFF, region) {
     const texto = String(html);
 
     /* El nick sale en el título, delante del "(ID 123...)". Es lo más
-       estable de la página: es lo que Google enseña en los resultados. */
+       estable de la página: es lo que Google enseña en los resultados.
+
+       El "(ID 123...)" es obligatorio, y con ESE id. Cuando la cuenta no
+       existe, el sitio no devuelve un 404: devuelve su buscador, cuyo título
+       es "Buscador de Cuenta Free Fire por ID: Consulta tu Perfil". Partir
+       por "(ID " sin comprobar nada daba ese título entero por nick, y el
+       jugador quedaba registrado con el nombre de la página. Un nick
+       equivocado descalifica al equipo sin devolución, así que ante la duda
+       no se devuelve nada y la persona lo escribe a mano. */
     const titulo = (texto.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
         || texto.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || '';
-    const nick = sinEntidades(titulo.split(/\s*\(ID\s/i)[0] || '').trim();
+    const partido = titulo.match(/^([\s\S]*?)\s*\(\s*ID\s*:?\s*(\d{5,})\s*\)/i);
+    if (!partido) return null;
+    if (partido[2] !== String(uidFF)) return null;
+    const nick = sinEntidades(partido[1]).trim();
     if (!nick) return null;
 
     const busca = (re) => (texto.match(re) || [])[1] || '';

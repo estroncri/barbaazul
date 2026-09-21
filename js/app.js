@@ -1178,10 +1178,15 @@
                 regPerfil = await S.consultarPerfilFF(uidVal, regionVal);
                 pintarPaso2();
             } catch (e) {
-                $('#regMsg').innerHTML = `<div class="msg msg-err">${esc(e.message)}</div>`;
-                this.disabled = false; this.innerHTML = '<i class="bi bi-search"></i> Buscar mi cuenta';
-                $('#regMsg').innerHTML += `<button class="btn btn-ghost btn-block btn-sm mb" id="btnManual">
-                    <i class="bi bi-pencil"></i> Escribir mis datos a mano</button>`;
+                /* No es un error del jugador y no se le pinta como tal. Los
+                   servicios que leían el perfil desde afuera están caídos, y
+                   un aviso rojo que dice "revisa el número" manda a alguien a
+                   comprobar veinte veces un ID que estaba bien. Escribir el
+                   nick a mano vale igual, así que ese es el botón grande. */
+                $('#regMsg').innerHTML = `<div class="msg msg-warn">${esc(e.message)}</div>`;
+                this.disabled = false; this.innerHTML = '<i class="bi bi-search"></i> Intentar otra vez';
+                $('#regMsg').innerHTML += `<button class="btn btn-fire btn-block mb" id="btnManual">
+                    <i class="bi bi-pencil"></i> Escribir mi nick y seguir</button>`;
                 const bm = $('#btnManual');
                 if (bm) bm.onclick = () => {
                     regPerfil = Object.assign(window.PerfilFF.perfilSimulado(($('#regUid').value.trim() || '0').replace(/\D/g, '') || '1000000000', $('#regRegion').value), { fuente: 'manual', nick: '' });

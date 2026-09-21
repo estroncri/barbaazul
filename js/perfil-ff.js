@@ -219,7 +219,10 @@ window.PerfilFF = (function () {
         clearTimeout(timer);
 
         // Un 404 dice que ESE servicio no tiene la cuenta, no que no exista.
-        if (resp.status === 404) throw new Error('No pudimos comprobar esa cuenta ahora mismo. Revisa el número, o escribe tus datos a mano.');
+        /* "Revisa el número" culpaba al jugador de algo que no es suyo: los
+           servicios que leen el perfil desde fuera de Free Fire llevan
+           semanas caídos. Que lo escriba a mano y siga. */
+        if (resp.status === 404) throw new Error('Free Fire no está dejando leer los perfiles desde fuera ahora mismo, y no es cosa de tu ID. Escribe tu nick tal como aparece en el juego y sigue: tu cuenta y tu cupo valen igual.');
         if (resp.status === 429) throw new Error('Muchas consultas seguidas. Espera un momento y vuelve a intentar.');
         if (!resp.ok) throw new Error('El servicio de perfiles no respondió bien (error ' + resp.status + '). Puedes continuar escribiendo tus datos a mano.');
 

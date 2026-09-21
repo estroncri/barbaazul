@@ -618,5 +618,35 @@ comprobar(feo.estado === 400, 'Un enlace que no es https se rechaza', feo.estado
 comprobar((await llamar('GET', `/api/torneos/${tPrueba.id}`)).datos.evidencia === 'https://drive.google.com/captura',
     'Y el que ya estaba no se pierde por intentarlo');
 
+/* ============================================================
+   El nick que se lee de una página web
+   ------------------------------------------------------------
+   Cuando la cuenta no existe, freefiremania no devuelve un 404:
+   devuelve su buscador. Dar por bueno ese título ponía a un
+   jugador a llamarse "Buscador de Cuenta Free Fire por ID", y
+   un nick que no coincide con el del juego descalifica al
+   equipo sin devolución.
+   ============================================================ */
+console.log('\n── El nick leído de una página ──\n');
+
+const bueno = extraerDeHtml('<title>ElNickDeVerdad (ID 6897985889) — Free Fire</title>', '6897985889', 'us');
+comprobar(bueno?.basicInfo?.nickname === 'ElNickDeVerdad', 'De una página de cuenta sale el nick', bueno?.basicInfo?.nickname);
+
+comprobar(extraerDeHtml('<title>Buscador de Cuenta Free Fire por ID: Consulta tu Perfil</title>', '6897985889', 'us') === null,
+    'El buscador genérico no se da por cuenta encontrada');
+
+comprobar(extraerDeHtml('<title>OtroJugador (ID 1111111111)</title>', '6897985889', 'us') === null,
+    'La página de otra cuenta tampoco, aunque traiga nick');
+
+comprobar(extraerDeHtml('<title>(ID 6897985889)</title>', '6897985889', 'us') === null,
+    'Un título sin nick delante del ID no vale');
+
+const conDosPuntos = extraerDeHtml('<title>Nick2 (ID: 6897985889)</title>', '6897985889', 'us');
+comprobar(conDosPuntos?.basicInfo?.nickname === 'Nick2', 'Con "ID:" también se entiende', conDosPuntos?.basicInfo?.nickname);
+
+const conMeta = extraerDeHtml(
+    '<meta property="og:title" content="DelMeta (ID 6897985889)"><title>otra cosa</title>', '6897985889', 'us');
+comprobar(conMeta?.basicInfo?.nickname === 'DelMeta', 'Se prefiere el og:title al title', conMeta?.basicInfo?.nickname);
+
 console.log(fallos === 0 ? '\n  Todo correcto.\n' : `\n  ${fallos} prueba(s) fallaron.\n`);
 process.exit(fallos ? 1 : 0);
